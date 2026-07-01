@@ -1,6 +1,6 @@
 # AWS distributed fetch — Stage 2 strategy
 
-**Status:** approved direction  
+**Status:** draft — **run soak + scaling ladder before committing to fleet architecture**  
 **Scope:** Download ~1.26M ASX PDFs (~500 GB–1.2 TB) to S3 using a ticker-sharded worker fleet  
 **Prerequisite:** Step 2 index complete locally (`*_Announcements.csv` per ticker)
 
@@ -95,7 +95,7 @@ PDF prefix stays empty until workers fill it.
 | **SQS DLQ** | Failed batches | Tickers to retry manually |
 | **IAM role** | Worker permissions | `s3:GetObject`, `PutObject`, `HeadObject`; `sqs:ReceiveMessage`, `DeleteMessage` |
 | **EC2 launch template** | Worker image | Amazon Linux 2023, `t3.small` or `c7g.medium |
-| **Auto Scaling Group** | Spot fleet | Desired capacity = worker count (start 4–10) |
+| **Auto Scaling Group** | Spot fleet | Desired capacity = **ladder result** (not fixed at 10) |
 | **Security group** | Egress only | Outbound 443; no inbound rules |
 
 Optional later: CloudWatch dashboard for queue depth + worker count.
@@ -131,9 +131,128 @@ Worker algorithm:
 
 ---
 
+## Soak test design
+
+### Same document vs different documents?
+
+| Test type | Same `documentKey` repeated | Different `documentKey`s |
+|-----------|----------------------------|---------------------------|
+| **What it measures** | Per-URL / per-IP throttle on one object | Real fetch throughput (typical production path) |
+| **HTTP cache** | Must use `--no-cache` or cache hides CDN | Realistic — each URL is unique |
+| **Valid for 1-VM rate probe?** | **Yes** — quick ceiling check | **Yes** — preferred |
+| **Valid for multi-VM scaling ladder?** | **No** — all VMs hit one URL; doesn't test parallel corpus fetch | **Yes** — partition keys across workers |
+
+**Recommendation:**
+
+1. **B0 — one VM, one script** (`07_cdn_soak_test.py`): cycle through **different** `documentKey`s from one heavy ticker (e.g. CBA or BHP). Use `--no-cache`. Ramp `--rate-limit-s` (1.0 → 2.0 → 5.0) until 429s appear. Takes ~30–60 min, no AWS infra.
+
+2. **Optional micro-probe:** repeat a **single** `documentKey` with `--no-cache --single-key` to see if the CDN treats one hot URL differently. Informative but not sufficient alone.
+
+3. **Scaling ladder (B1+):** each worker must fetch a **disjoint set** of `documentKey`s (split by ticker or row range). Never point all workers at the same file.
+
+### B0 — 1-VM probe (run first)
+
+From repo root:
+
+```bash
+# Cycle 500 different PDFs from one ticker, 1 req/s, 30 min — no disk writes
+python 0-work/scripts/07_cdn_soak_test.py --ticker CBA --max-requests 500 --rate-limit-s 1.0
+
+# Push harder on same VM
+python 0-work/scripts/07_cdn_soak_test.py --ticker CBA --max-requests 500 --rate-limit-s 2.0
+python 0-work/scripts/07_cdn_soak_test.py --ticker CBA --max-requests 500 --rate-limit-s 5.0
+```
+
+Record: `requests`, `success`, `429`, `503`, `other_errors`, `bytes`, `elapsed_s`, `effective_rps`.
+
+**Abort B0 ramp** when `429 + 503 > 1%` of requests or latency spikes sustained.
+
+### What B0 tells you
+
+| Outcome | Implication |
+|---------|-------------|
+| Stable at 1 req/s, fails at 5 req/s | Per-worker cap ≈ 1–2 req/s for production |
+| Stable at 5+ req/s on one VM | Single VM can run multiple concurrent downloads; fleet may still help via more IPs |
+| 429s even at 1 req/s | CDN may block datacenter IPs — try EC2 in `ap-southeast-2` vs laptop |
+
+---
+
+## Scaling ladder
+
+Run **after B0**. Each rung uses the **same total document count** (~2,000–5,000 downloads) and **disjoint keys per worker**. Duration target: **≥30 min per rung** (or fixed request count, whichever comes first).
+
+### Rung table
+
+| Rung | Workers | Tickers / keys per worker | Per-worker rate | Stop if |
+|------|---------|---------------------------|-----------------|---------|
+| **0** | 1 (B0 probe) | 500+ keys, rotated | sweep 1→5 req/s | &gt;1% 429 |
+| **1** | 1 | ~2,000 keys | best from B0 | baseline docs/hr |
+| **2** | 4 | ~500 keys each, disjoint | same as B0 | docs/hr &lt; 3× rung 1 |
+| **3** | 10 | ~200 keys each | same | docs/hr &lt; 8× rung 1 |
+| **4** | 20 | ~100 keys each | same | docs/hr &lt; 15× rung 1 |
+| **5** | 50 | ~40 keys each | same | docs/hr &lt; 35× rung 1 |
+| **6** | 100 | ~20 keys each | same | docs/hr &lt; 70× rung 1 |
+
+**Advance to the next rung when:**
+
+- `docs/hr ≈ linear` with worker count (within ~20% of ideal: 4 workers ≈ 4× one worker)
+- `429 + 503 < 1%` of requests
+- No sustained backoff over 10+ minutes
+
+**Stop climbing when:**
+
+- Throughput **plateaus** (e.g. 50 workers ≈ 20 workers docs/hr)
+- Error rate **exceeds 1%**
+- Spot / account quotas block launch (request EC2 limit increase and retry)
+
+**Chosen fleet size** = highest rung that passed. Example: linear through rung 4 (20 workers), plateau at rung 5 → **deploy 20 workers** for Phase C.
+
+### How to partition work (no SQS required for ladder)
+
+Use existing `--ticker` on N VMs or one machine with N processes:
+
+```bash
+# Worker 0 of 4 — tickers from a shard file
+while read ticker; do
+  python 0-work/scripts/03_fetch_documents.py --ticker "$ticker" --no-cache
+done < shards/shard_00.txt
+```
+
+Generate shards from `entities.csv` so each ticker appears on **exactly one** shard. For ladder, prefer **small/medium tickers** first (avoid one whale dominating a single worker).
+
+### Metrics to record (each rung)
+
+Create `0-work/docs/soak_test_results.md`:
+
+```markdown
+## Rung N — YYYY-MM-DD
+- Workers: 4
+- Rate limit: 1.0 req/s per worker
+- Duration: 45 min
+- Requests: 7200
+- Success: 7150 (99.3%)
+- 429: 40 | 503: 5 | other: 5
+- Bytes: 3.2 GB
+- docs/hr: 9533
+- vs rung 1: 3.8× (linear would be 4×) → PASS
+```
+
+### Interpreting results
+
+| Pattern | Fleet decision |
+|---------|----------------|
+| Linear 1 → 4 → 20 → 50 | Use highest passing rung (50–100 OK) |
+| Linear 1 → 4, flat 4 → 20 | **Global/per-ASN cap** — fleet ≈ 4–8 workers |
+| Errors on laptop, fine on EC2 | Run production fetch from EC2 only |
+| One ticker dominates wall time | Enable whale sub-sharding (row ranges) |
+
+---
+
 ## Execution phases
 
-### Phase A — Bootstrap (once per account/region)
+Run **[Soak test design](#soak-test-design)** and **[Scaling ladder](#scaling-ladder)** before Phase A.
+
+### Phase A — Bootstrap (once per account/region; after ladder sign-off)
 
 | Step | Action | Who |
 |------|--------|-----|
@@ -142,16 +261,22 @@ Worker algorithm:
 | A3 | Upload index CSVs to S3 | Agent / CLI |
 | A4 | Build worker AMI or user-data script | Agent |
 
-### Phase B — Soak test (required)
+### Phase B — Soak test + scaling ladder (required before AWS commit)
+
+**Goal:** Find the CDN rate ceiling and whether throughput scales with worker count. Results pick fleet size for Phase C — not the other way around.
+
+See **[Scaling ladder](#scaling-ladder)** and **[Soak test design](#soak-test-design)** (above).
 
 | Step | Action | Success criteria |
 |------|--------|------------------|
-| B1 | Enqueue ~20 tickers | Messages visible in SQS |
-| B2 | Run 1 worker × 2 h | Measure docs/hr, error rate |
-| B3 | Run 4 workers × 2 h | Confirm near-linear scaling |
-| B4 | Pick fleet size | &lt;1% failures, no sustained 429s |
+| B0 | **1-VM CDN probe** (local or EC2) | Stable req/s, 429 rate known |
+| B1 | Ladder rung **1** → **4** workers | Measure docs/hr each |
+| B2 | Advance rungs while linear | Stop at first non-linear or &gt;1% 429 |
+| B3 | Record chosen fleet size | Document in `0-work/docs/soak_test_results.md` |
 
-### Phase C — Full fetch
+**Do not deploy full S3+SQS stack until B0–B2 complete.** Phase B can run with existing `03_fetch_documents.py` on local disk or a single EC2 — no bucket required for the probe.
+
+### Phase C — Full fetch (after ladder sign-off)
 
 | Step | Action |
 |------|--------|
@@ -176,6 +301,7 @@ Local `data/entities/*/raw/` becomes optional cache. Parse stage reads from S3.
 | `0-work/scripts/04_enqueue_fetch_jobs.py` | Push ticker batches to SQS |
 | `0-work/scripts/05_fetch_worker.py` | SQS consumer → S3 upload |
 | `0-work/scripts/06_merge_fetch_logs.py` | Consolidate jsonl logs |
+| `0-work/scripts/07_cdn_soak_test.py` | B0 CDN probe — rate limit sweep, no PDF writes |
 | Refactor `03_fetch_documents.py` | Delegate to shared `fetch_ticker()` |
 
 Env vars: `GYPSY_S3_BUCKET`, `GYPSY_SQS_QUEUE_URL`, `AWS_REGION=ap-southeast-2`.
@@ -224,3 +350,4 @@ Env vars: `GYPSY_S3_BUCKET`, `GYPSY_SQS_QUEUE_URL`, `AWS_REGION=ap-southeast-2`.
 - Exact bucket name and CDK vs raw CloudFormation
 - Spot vs On-Demand for first full run (spot recommended)
 - Whale ticker sub-sharding (defer until soak metrics show skew)
+- **Fleet size** — set by scaling ladder, not guessed upfront
