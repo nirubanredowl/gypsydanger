@@ -15,6 +15,19 @@ INSTANCE_ID="${GYPSY_SOAK_INSTANCE_ID:-i-0812f82dd21298e96}"
 MAX_REQUESTS="${1:-50}"
 RATE_LIMIT_S="${2:-1.0}"
 
+export AWS_PAGER=""
+export AWS_CLI_PAGER=""
+
+# SSM soak runs on EC2; allow rate limit + ~7s avg CDN download per request + buffer.
+POLL_MAX_S="$(python3 - <<PY
+import math
+max_requests = int("${MAX_REQUESTS}")
+rate = float("${RATE_LIMIT_S}")
+print(int(math.ceil(max_requests * (rate + 7.0) + 300)))
+PY
+)"
+POLL_ITERS=$(( (POLL_MAX_S + 4) / 5 ))
+
 REMOTE_SCRIPT="$(cat <<'REMOTE'
 set -euxo pipefail
 source /etc/profile.d/gypsy-danger.sh
@@ -24,11 +37,14 @@ aws s3 cp "s3://${GYPSY_S3_BUCKET}/scripts/00_asx_api.py" "$ROOT/0-work/scripts/
 aws s3 cp "s3://${GYPSY_S3_BUCKET}/scripts/07_cdn_soak_test.py" "$ROOT/0-work/scripts/"
 aws s3 cp "s3://${GYPSY_S3_BUCKET}/entities/CBA/CBA_Announcements.csv" "$ROOT/data/entities/CBA/"
 cd "$ROOT/0-work/scripts"
-python3 07_cdn_soak_test.py --ticker CBA --max-requests MAX_REQUESTS --rate-limit-s RATE_LIMIT_S --no-cache
+python3 07_cdn_soak_test.py --ticker CBA --max-requests MAX_REQUESTS --rate-limit-s RATE_LIMIT_S --no-cache \
+  2>&1 | tee /tmp/gypsy-soak.log
 REMOTE
 )"
 REMOTE_SCRIPT="${REMOTE_SCRIPT/MAX_REQUESTS/$MAX_REQUESTS}"
 REMOTE_SCRIPT="${REMOTE_SCRIPT/RATE_LIMIT_S/$RATE_LIMIT_S}"
+
+TIMEOUT_S="$POLL_MAX_S"
 
 B64="$(printf '%s' "$REMOTE_SCRIPT" | base64 -w0)"
 CMD="echo $B64 | base64 -d | bash"
@@ -36,24 +52,54 @@ CMD="echo $B64 | base64 -d | bash"
 CMD_ID="$(aws ssm send-command \
   --instance-ids "$INSTANCE_ID" \
   --document-name AWS-RunShellScript \
+  --timeout-seconds "$TIMEOUT_S" \
   --parameters "commands=[\"$CMD\"]" \
   --query 'Command.CommandId' \
+  --no-cli-pager \
   --output text)"
 
 echo "SSM CommandId: $CMD_ID (instance $INSTANCE_ID)"
-for _ in $(seq 1 60); do
+echo "SSM timeout: ${TIMEOUT_S}s | polling up to ${POLL_MAX_S}s for ${MAX_REQUESTS} requests..."
+for _ in $(seq 1 "$POLL_ITERS"); do
   STATUS="$(aws ssm get-command-invocation \
     --command-id "$CMD_ID" \
     --instance-id "$INSTANCE_ID" \
+    --no-cli-pager \
     --query Status --output text 2>/dev/null || echo Pending)"
-  echo "Status: $STATUS"
+  if (( _ % 12 == 0 )); then
+    echo "Status: $STATUS (${_} checks, ~$(( _ * 5 ))s elapsed)"
+  elif [[ "$STATUS" != "InProgress" && "$STATUS" != "Pending" ]]; then
+    echo "Status: $STATUS"
+  fi
   if [[ "$STATUS" == "Success" || "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
     break
   fi
   sleep 5
 done
 
-aws ssm get-command-invocation \
+FINAL="$(aws ssm get-command-invocation \
   --command-id "$CMD_ID" \
   --instance-id "$INSTANCE_ID" \
-  --output json
+  --no-cli-pager \
+  --output json)"
+STATUS="$(printf '%s' "$FINAL" | python3 -c "import json,sys; print(json.load(sys.stdin).get('Status',''))")"
+printf '%s\n' "$FINAL"
+
+if [[ "$STATUS" == "TimedOut" ]]; then
+  echo
+  echo "SSM timed out — fetching partial log from /tmp/gypsy-soak.log on instance..."
+  LOG_CMD='cat /tmp/gypsy-soak.log 2>/dev/null | tail -30 || echo "(no log file)"'
+  B64_LOG="$(printf '%s' "$LOG_CMD" | base64 -w0)"
+  LOG_ID="$(aws ssm send-command \
+    --instance-ids "$INSTANCE_ID" \
+    --document-name AWS-RunShellScript \
+    --parameters "commands=[\"echo $B64_LOG | base64 -d | bash\"]" \
+    --query Command.CommandId --no-cli-pager --output text)"
+  sleep 6
+  aws ssm get-command-invocation \
+    --command-id "$LOG_ID" \
+    --instance-id "$INSTANCE_ID" \
+    --no-cli-pager \
+    --query StandardOutputContent \
+    --output text
+fi
