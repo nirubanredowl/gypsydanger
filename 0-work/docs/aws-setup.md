@@ -10,33 +10,26 @@ Installed in this environment:
 aws --version   # aws-cli/2.x
 ```
 
-### Authenticate (one-time per session)
+### Authenticate
 
-Use **`aws login`** (CLI 2.32+) for short-lived credentials:
+**Cloud VM / headless (recommended):** access keys in `0-work/scripts/.env` (gitignored):
 
 ```bash
-aws configure set region ap-southeast-2
-aws login --remote
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_DEFAULT_REGION=ap-southeast-2
 ```
 
-On this cloud VM, `aws login --remote` prints a URL — open it in your browser, sign in, then paste the **authorization code** back into the waiting terminal.
-
-Verify:
+Load and verify:
 
 ```bash
+set -a && source 0-work/scripts/.env && set +a
 aws sts get-caller-identity
 ```
 
-On a machine with a local browser, `aws login` (without `--remote`) works too.
+**Local dev (optional):** use **`aws login`** (CLI 2.32+) for short-lived credentials instead of keys.
 
-Optional: store non-secret defaults in `0-work/scripts/.env` (gitignored):
-
-```bash
-AWS_REGION=ap-southeast-2
-GYPSY_S3_BUCKET=gypsy-danger-asx   # set after deploy
-```
-
-Never commit access keys. Workers use **IAM instance roles**, not keys.
+Never commit `.env`. EC2 workers use **IAM instance roles**, not keys.
 
 ## AWS MCP (Cursor)
 
