@@ -79,3 +79,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `python3 0-work/scripts/04_verify_entity_folders.py --require-announcements`
 - **Exit:** 0
 - **Result:** 1838/1838 folders OK with renamed announcement CSVs.
+
+## 2026-07-01 — aws/bootstrap_baseline.sh
+- **Command:** `0-work/scripts/aws/bootstrap_baseline.sh`
+- **Exit:** 254 (AccessDenied)
+- **Result:** Blocked at S3 CreateBucket — `niruban_cursor` needs `0-work/infra/iam-baseline-policy.json` attached. Script and naming doc ready to re-run.

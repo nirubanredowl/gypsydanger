@@ -31,6 +31,24 @@ aws sts get-caller-identity
 
 Never commit `.env`. EC2 workers use **IAM instance roles**, not keys.
 
+### Baseline infrastructure (soak phase)
+
+Naming and tags: [`aws-naming.md`](aws-naming.md)
+
+```bash
+set -a && source 0-work/scripts/.env && set +a
+0-work/scripts/aws/bootstrap_baseline.sh
+```
+
+Creates (idempotent):
+
+- S3 `gypsy-danger-asx-{account_id}`
+- IAM role + instance profile for EC2 → S3
+- Security group (egress 443 only)
+- One EC2 `gypsy-danger-soak-01` (t3.small)
+
+**IAM:** attach [`0-work/infra/iam-baseline-policy.json`](../infra/iam-baseline-policy.json) to `niruban_cursor` first (Console → IAM → Users → Add permissions → Create inline policy from JSON).
+
 ## AWS MCP (Cursor)
 
 MCP is configured in two places (Cursor merges them):
