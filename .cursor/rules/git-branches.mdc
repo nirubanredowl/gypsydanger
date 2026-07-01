@@ -1,0 +1,11 @@
+---
+description: Do not create git branches unless the user explicitly asks
+alwaysApply: true
+---
+
+# Git branches
+
+- Work on the **current branch**. Do not create branches proactively.
+- Do **not** run `git checkout -b`, `git switch -c`, or equivalent unless the user explicitly requests a branch (e.g. "create a branch called feature-x").
+- Do not create a branch for PR workflow, cloud agent convenience, or "clean separation" without explicit instruction.
+- Commits and pushes on the current branch are fine when the user asks or the task implies it.

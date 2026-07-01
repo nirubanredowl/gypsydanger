@@ -1,0 +1,30 @@
+---
+description: 0-work agent context layout — spec, plans, scripts, and logging
+alwaysApply: true
+---
+
+# 0-work workspace
+
+`0-work/` is the agent context space for this project. Application code lives outside it.
+
+## Layout
+
+- `0-work/docs/spec.md` — project objectives and agent brief. **Read before planning or executing.**
+- `0-work/plans/` — execution plans. One file per major effort; do not scatter plans in the repo root.
+- `0-work/scripts/` — side effects (API calls, deploys, git push). Log every run in `0-work/scripts/log.md`.
+- `0-work/scripts/.env` — credentials (gitignored). Never commit or echo secrets.
+
+## Script log
+
+After running any script under `0-work/scripts/`, append to `log.md`:
+
+```markdown
+## YYYY-MM-DD HH:MM — script-name
+- **Command:** `...`
+- **Exit:** 0
+- **Result:** ...
+```
+
+## Agent brief updates
+
+When project state changes materially, update the **Agent brief** section in `spec.md` (current state, next action, open decisions).

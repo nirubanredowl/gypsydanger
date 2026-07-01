@@ -1,0 +1,14 @@
+# Pilot tickers — randomly picked 10 from entities.csv
+# Generated: 2026-06-30 04:43 UTC
+# Seed: 42
+
+ACS
+AUG
+AX8
+BLX
+CSL
+DBF
+EDU
+PTL
+SOL
+SPL
