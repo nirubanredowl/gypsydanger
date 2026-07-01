@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Stage 1 scripts implemented (`01`–`03` + `00_asx_api.py`). Entity CSV and API reference in `0-work/docs/links.md`.
+**Current state:** Stage 1 scripts implemented (`01`–`03` + `00_asx_api.py`). Step 2 index complete for ~1,838 tickers (~1.26M documents). AWS CLI + MCP configured in repo. Stage 2 strategy: [`0-work/plans/aws-distributed-fetch.md`](../plans/aws-distributed-fetch.md).
 
-**Next action:** Add pilot tickers to `data/pilot_tickers.txt` → run Steps 1–3 with `--pilot-only`.
+**Next action:** `aws login` → deploy AWS stack (S3 + SQS + workers) → upload index to S3 → soak test → full PDF fetch to bucket.
 
 **Constraints**
 

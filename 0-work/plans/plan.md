@@ -162,14 +162,18 @@ All runs logged to [`0-work/scripts/log.md`](../scripts/log.md).
 
 **Stage 1 success criteria:** Pilot tickers in `entities.csv` with `entity_xid`; full announcement index per ticker; all documents downloaded (or failures logged); pipeline idempotent on re-run.
 
-### Phase 3 — Stage 2 full fetch
+### Phase 3 — Stage 2 full fetch (AWS)
+
+**Architecture:** [`aws-distributed-fetch.md`](aws-distributed-fetch.md) — S3 corpus + SQS ticker batches + EC2 spot workers.
 
 | # | Step | Notes |
 |---|------|-------|
-| 3.1 | Re-run Step 1 without `--pilot-only` | ~1,839 entities |
-| 3.2 | Re-run Step 2 without `--pilot-only` | Skip rows that already have `entity_xid`; re-index announcements per ticker |
-| 3.3 | Re-run Step 3 | Large disk footprint; monitor failures |
-| 3.4 | Review `fetch_log.json` | Retry failures; `overrides.json` for edge cases |
+| 3.0 | Index complete locally | ✅ ~1,838 tickers, ~1.26M `documentKey` rows (Step 2 done) |
+| 3.1 | Deploy AWS stack | S3 bucket, SQS, IAM, spot worker ASG — via CDK/CLI from Cursor after `aws login` |
+| 3.2 | Upload index to S3 | `entities.csv` + `*_Announcements.csv` only (no PDFs yet) |
+| 3.3 | Soak test | 1 vs 4 workers × 2 h → pick fleet size |
+| 3.4 | Enqueue + run workers | `04_enqueue_fetch_jobs.py` → scale ASG → stream PDFs CDN → S3 |
+| 3.5 | Merge logs + retry | `06_merge_fetch_logs.py`; re-enqueue failed tickers |
 
 ### Phase 4+ — Later (not Stage 1)
 
@@ -378,16 +382,18 @@ From [RESEARCH_APPROACH.md](https://github.com/nirubanxp413/papalpapers/blob/27a
 
 ---
 
-## Stage 2 — Full fetch
+## Stage 2 — Full fetch (AWS)
 
-After Stage 1 sign-off:
+**Design doc:** [`aws-distributed-fetch.md`](aws-distributed-fetch.md)
 
-1. Remove `--pilot-only`
-2. Run index + fetch for all ~1,839 entities
-3. `entity_xid` on `entities.csv` — skip resolution if already set
-4. Monitor: rate limits, CDN failures, suspended/delisted tickers
+After Stage 1 sign-off (or with index already built — current state):
 
-No new scripts expected — same pipeline at scale.
+1. **Index** — Step 2 complete for ~1,838 tickers locally; upload manifests to **S3**.
+2. **Fetch** — Step 3 at scale via **SQS + EC2 spot workers** writing PDFs directly to S3 (not local disk).
+3. **Monitor** — queue depth, worker logs, CDN 429s; retry failures from DLQ / failed manifest.
+4. **Validate** — sample tickers: announcement row count ≈ S3 object count under `raw/`.
+
+New scripts: `04_enqueue_fetch_jobs.py`, `05_fetch_worker.py`, `06_merge_fetch_logs.py`, S3 storage backend, CDK stack under `0-work/infra/`.
 
 ---
 
@@ -413,7 +419,8 @@ No new scripts expected — same pipeline at scale.
 
 - Pilot ticker list
 - Bootstrap strategy for first-time `entity_xid` resolution
-- Git strategy for large PDF corpus (gitignore vs object storage)
+- ~~Git strategy for large PDF corpus~~ → **resolved:** S3 source of truth (see [`aws-distributed-fetch.md`](aws-distributed-fetch.md))
+- Exact S3 bucket name and spot fleet size (after soak test)
 
 ---
 
@@ -428,7 +435,9 @@ prj-gypsydanger/
 │   │   ├── ASX_Listed_Companies_*.csv
 │   │   └── stage1_observations.md
 │   ├── plans/
-│   │   └── plan.md
+│   │   ├── plan.md
+│   │   └── aws-distributed-fetch.md
+│   ├── infra/                        # CDK: S3, SQS, EC2 workers (Stage 2)
 │   └── scripts/
 │       ├── 00_asx_api.py
 │       ├── 01_normalise_entities.py
