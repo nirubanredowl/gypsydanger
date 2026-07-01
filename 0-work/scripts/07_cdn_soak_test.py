@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 import time
 import urllib.error
@@ -48,7 +49,40 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable HTTP response cache (required for meaningful soak)",
     )
+    parser.add_argument(
+        "--keys-file",
+        type=Path,
+        help="Text file with one documentKey per line (overrides --ticker)",
+    )
+    parser.add_argument(
+        "--key-offset",
+        type=int,
+        default=0,
+        help="Skip first N keys after loading (use with --ticker)",
+    )
+    parser.add_argument(
+        "--label",
+        default="",
+        help="Worker label included in summary (e.g. shard_02)",
+    )
+    parser.add_argument(
+        "--result-json",
+        type=Path,
+        help="Write machine-readable summary JSON to this path",
+    )
     return parser.parse_args()
+
+
+def load_keys_from_file(path: Path) -> list[str]:
+    keys: list[str] = []
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            key = line.strip()
+            if key and not key.startswith("#"):
+                keys.append(key)
+    if not keys:
+        raise ValueError(f"No documentKeys in {path}")
+    return keys
 
 
 def load_document_keys(ticker: str) -> list[str]:
@@ -75,7 +109,14 @@ def http_status(exc: BaseException) -> int | None:
 def main() -> int:
     args = parse_args()
     ticker = args.ticker.upper()
-    keys = load_document_keys(ticker)
+    if args.keys_file:
+        keys = load_keys_from_file(args.keys_file)
+        source = str(args.keys_file)
+    else:
+        keys = load_document_keys(ticker)
+        source = ticker
+        if args.key_offset:
+            keys = keys[args.key_offset :]
     if args.single_key:
         keys = [keys[0]]
 
@@ -95,9 +136,9 @@ def main() -> int:
     started = time.monotonic()
 
     print(
-        f"Soak: ticker={ticker} max_requests={args.max_requests} "
+        f"Soak: source={source} max_requests={args.max_requests} "
         f"rate_limit_s={args.rate_limit_s} single_key={args.single_key} "
-        f"no_cache={args.no_cache} unique_keys={len(keys)}"
+        f"no_cache={args.no_cache} unique_keys={len(keys)} label={args.label or '-'}"
     )
 
     idx = 0
@@ -136,7 +177,9 @@ def main() -> int:
     docs_hr = (3600.0 * stats["success"] / elapsed) if elapsed else 0.0
 
     print("\n--- soak summary ---")
-    print(f"ticker:          {ticker}")
+    if args.label:
+        print(f"label:           {args.label}")
+    print(f"source:          {source}")
     print(f"elapsed_s:       {elapsed:.1f}")
     print(f"requests:        {stats['requests']}")
     print(f"success:         {stats['success']}")
@@ -147,6 +190,27 @@ def main() -> int:
     print(f"bytes:           {stats['bytes']}")
     print(f"effective_rps:   {stats['requests'] / elapsed:.2f}" if elapsed else "effective_rps:   n/a")
     print(f"docs_hr:         {docs_hr:.0f}")
+
+    if args.result_json:
+        payload = {
+            "label": args.label or None,
+            "source": source,
+            "max_requests": args.max_requests,
+            "rate_limit_s": args.rate_limit_s,
+            "elapsed_s": round(elapsed, 1),
+            "requests": stats["requests"],
+            "success": stats["success"],
+            "429": stats["429"],
+            "503": stats["503"],
+            "other_errors": stats["other_errors"],
+            "error_pct": round(err_pct, 2),
+            "bytes": stats["bytes"],
+            "docs_hr": round(docs_hr),
+        }
+        args.result_json.parent.mkdir(parents=True, exist_ok=True)
+        args.result_json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"result_json:     {args.result_json}")
+
     return 1 if err_pct > 1.0 else 0
 
 

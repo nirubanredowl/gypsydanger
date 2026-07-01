@@ -252,6 +252,8 @@ Create `0-work/docs/soak_test_results.md`:
 
 Run **[Soak test design](#soak-test-design)** and **[Scaling ladder](#scaling-ladder)** before Phase A.
 
+**Execution detail (scripts, async email, rung commands):** [`scaling-ladder-execution.md`](scaling-ladder-execution.md)
+
 ### Phase A — Bootstrap (once per account/region; after ladder sign-off)
 
 | Step | Action | Who |

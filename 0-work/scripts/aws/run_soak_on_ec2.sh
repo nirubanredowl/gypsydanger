@@ -12,6 +12,11 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 INSTANCE_ID="${GYPSY_SOAK_INSTANCE_ID:-i-0812f82dd21298e96}"
+ASYNC=0
+if [[ "${1:-}" == "--async" ]]; then
+  ASYNC=1
+  shift
+fi
 MAX_REQUESTS="${1:-50}"
 RATE_LIMIT_S="${2:-1.0}"
 
@@ -39,6 +44,12 @@ aws s3 cp "s3://${GYPSY_S3_BUCKET}/entities/CBA/CBA_Announcements.csv" "$ROOT/da
 cd "$ROOT/0-work/scripts"
 python3 07_cdn_soak_test.py --ticker CBA --max-requests MAX_REQUESTS --rate-limit-s RATE_LIMIT_S --no-cache \
   2>&1 | tee /tmp/gypsy-soak.log
+if [[ -n "${GYPSY_SNS_TOPIC_ARN:-}" ]]; then
+  SUBJECT="Gypsy Danger soak — CBA MAX_REQUESTS req @ RATE_LIMIT_S/s"
+  BODY="$(tail -40 /tmp/gypsy-soak.log)"
+  aws sns publish --topic-arn "$GYPSY_SNS_TOPIC_ARN" --subject "$SUBJECT" --message "$BODY"
+fi
+aws s3 cp /tmp/gypsy-soak.log "s3://${GYPSY_S3_BUCKET}/logs/soak/$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo local)-$(date -u +%Y%m%dT%H%M%SZ).log" || true
 REMOTE
 )"
 REMOTE_SCRIPT="${REMOTE_SCRIPT/MAX_REQUESTS/$MAX_REQUESTS}"
@@ -60,6 +71,18 @@ CMD_ID="$(aws ssm send-command \
 
 echo "SSM CommandId: $CMD_ID (instance $INSTANCE_ID)"
 echo "SSM timeout: ${TIMEOUT_S}s | polling up to ${POLL_MAX_S}s for ${MAX_REQUESTS} requests..."
+
+if [[ "$ASYNC" -eq 1 ]]; then
+  echo
+  echo "Async mode — safe to close Cursor."
+  if [[ -n "${GYPSY_SNS_TOPIC_ARN:-}" ]]; then
+    echo "You will receive an SNS email when the soak completes."
+  else
+    echo "Set GYPSY_SNS_TOPIC_ARN (bootstrap_notifications.sh) for email on completion."
+  fi
+  exit 0
+fi
+
 for _ in $(seq 1 "$POLL_ITERS"); do
   STATUS="$(aws ssm get-command-invocation \
     --command-id "$CMD_ID" \

@@ -109,3 +109,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `0-work/scripts/aws/run_soak_on_ec2.sh 500 1.0`
 - **Exit:** 0
 - **Result:** SSM `786b89a4-aa01-42e4-a967-7dfd2a69b011`. CBA, 500/500 CDN GETs, 0% errors, ~1271 docs/hr, ~502 MB, 1416s elapsed.
+
+## 2026-07-01 — scaling ladder + SNS notifications (design/scripts)
+- **Command:** (doc + script commit)
+- **Exit:** —
+- **Result:** `scaling-ladder-execution.md`, `08_build_ladder_pool.py`, `run_ladder_rung.sh --async`, `bootstrap_notifications.sh`, soak `--async` + SNS email on completion.

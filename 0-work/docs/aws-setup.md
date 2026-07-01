@@ -51,6 +51,36 @@ Creates (idempotent):
 
 **IAM:** attach [`0-work/infra/iam-baseline-policy.json`](../infra/iam-baseline-policy.json) to `niruban_cursor` first (Console → IAM → Users → Add permissions → Create inline policy from JSON).
 
+### Email notifications (async jobs)
+
+Long soak/ladder runs can exit immediately and **email you when finished** via SNS.
+
+1. Add to `0-work/scripts/.env`:
+
+```bash
+GYPSY_NOTIFY_EMAIL=you@example.com
+```
+
+2. Bootstrap the topic (once):
+
+```bash
+0-work/scripts/aws/bootstrap_notifications.sh
+```
+
+3. **Confirm the SNS subscription** in your inbox (required once).
+
+4. Run jobs in async mode:
+
+```bash
+# Single soak — email with log summary
+0-work/scripts/aws/run_soak_on_ec2.sh --async 500 1.0
+
+# Scaling ladder rung — email with aggregate metrics
+0-work/scripts/aws/run_ladder_rung.sh --async 2
+```
+
+Details: [`scaling-ladder-execution.md`](../plans/scaling-ladder-execution.md)
+
 ## AWS MCP (Cursor)
 
 MCP is configured in two places (Cursor merges them):
