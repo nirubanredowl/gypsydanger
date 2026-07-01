@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Stage 1 scripts implemented (`01`–`03` + `00_asx_api.py`). Step 2 index complete for ~1,838 tickers (~1.26M documents). AWS CLI + MCP configured in repo. Stage 2 strategy: [`0-work/plans/aws-distributed-fetch.md`](../plans/aws-distributed-fetch.md).
+**Current state:** Stage 1 index complete (~1,838 tickers, ~1.26M documents). AWS baseline live: S3 `gypsy-danger-asx-691811257790`, soak EC2 `i-0812f82dd21298e96` (SSM online). Index CSVs uploaded to S3. B0 micro-soak on EC2: 50/50 CDN GETs OK (0% errors, ~788 docs/hr at 1 req/s + download latency).
 
-**Next action:** Run B0 CDN soak (`07_cdn_soak_test.py`) → scaling ladder → deploy AWS stack (S3 + SQS + workers).
+**Next action:** Run full B0 soak (500 requests, rate-limit sweep) → scaling ladder (1→4→10→20→50→100 workers) → SQS + ASG fetch stack.
 
 **Constraints**
 

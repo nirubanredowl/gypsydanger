@@ -27,6 +27,8 @@ set -a && source 0-work/scripts/.env && set +a
 aws sts get-caller-identity
 ```
 
+Each variable must be on its own line; the file should end with a newline. `AWS_SECRET_ACCESS_KEY` is exactly 40 characters — if bootstrap appended `GYPSY_S3_BUCKET` without a trailing newline on the previous line, the secret can become corrupted (SignatureDoesNotMatch).
+
 **Local dev (optional):** use **`aws login`** (CLI 2.32+) for short-lived credentials instead of keys.
 
 Never commit `.env`. EC2 workers use **IAM instance roles**, not keys.

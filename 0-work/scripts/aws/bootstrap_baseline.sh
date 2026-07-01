@@ -86,8 +86,7 @@ if aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
   echo "IAM role exists: $ROLE_NAME"
 else
   echo "Creating IAM role: $ROLE_NAME"
-  aws iam create-role --role-name "$ROLE_NAME" --assume-role-policy-document "$TRUST" \
-    --tags Key=Project,Value="${PROJECT}" Key=Application,Value="${APP}" Key=Stage,Value="${STAGE}"
+  aws iam create-role --role-name "$ROLE_NAME" --assume-role-policy-document "$TRUST"
 fi
 
 ROLE_POLICY="$(cat <<EOF
@@ -126,8 +125,7 @@ if aws iam get-instance-profile --instance-profile-name "$PROFILE_NAME" >/dev/nu
   echo "Instance profile exists: $PROFILE_NAME"
 else
   echo "Creating instance profile: $PROFILE_NAME"
-  aws iam create-instance-profile --instance-profile-name "$PROFILE_NAME" \
-    --tags Key=Project,Value="${PROJECT}" Key=Application,Value="${APP}"
+  aws iam create-instance-profile --instance-profile-name "$PROFILE_NAME"
   aws iam add-role-to-instance-profile --instance-profile-name "$PROFILE_NAME" \
     --role-name "$ROLE_NAME"
   echo "Waiting for instance profile propagation..."
@@ -194,6 +192,11 @@ fi
 
 # --- Write env hint for local scripts ---
 if [[ -f "$ENV_FILE" ]] && ! grep -q '^GYPSY_S3_BUCKET=' "$ENV_FILE" 2>/dev/null; then
+  # Ensure previous line ends with newline (avoid concatenating onto AWS_SECRET_ACCESS_KEY)
+  last_char="$(tail -c1 "$ENV_FILE" 2>/dev/null || true)"
+  if [[ -n "$last_char" && "$last_char" != $'\n' ]]; then
+    echo >> "$ENV_FILE"
+  fi
   echo "GYPSY_S3_BUCKET=${BUCKET}" >> "$ENV_FILE"
   echo "Appended GYPSY_S3_BUCKET to $ENV_FILE"
 fi

@@ -84,3 +84,18 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `0-work/scripts/aws/bootstrap_baseline.sh`
 - **Exit:** 254 (AccessDenied)
 - **Result:** Blocked at S3 CreateBucket — `niruban_cursor` needs `0-work/infra/iam-baseline-policy.json` attached. Script and naming doc ready to re-run.
+
+## 2026-07-01 — aws/bootstrap_baseline.sh (retry)
+- **Command:** `0-work/scripts/aws/bootstrap_baseline.sh`
+- **Exit:** 0
+- **Result:** S3 `gypsy-danger-asx-691811257790`, IAM role/profile, SG `sg-06b188c6063d53a96`, EC2 `i-0812f82dd21298e96` (`gypsy-danger-soak-01`).
+
+## 2026-07-01 — S3 index upload
+- **Command:** `aws s3 cp data/entities.csv s3://gypsy-danger-asx-691811257790/` + `aws s3 sync data/entities/ ... --include '*_Announcements.csv'`
+- **Exit:** 0
+- **Result:** 1838 ticker announcement CSVs + entities.csv uploaded.
+
+## 2026-07-01 — aws/run_soak_on_ec2.sh (B0 micro-soak)
+- **Command:** `0-work/scripts/aws/run_soak_on_ec2.sh 50 1.0`
+- **Exit:** 0
+- **Result:** EC2 `i-0812f82dd21298e96`, CBA ticker, 50 CDN GETs, 0% errors, ~788 docs/hr effective throughput.
