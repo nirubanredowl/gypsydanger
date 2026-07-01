@@ -104,3 +104,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `0-work/scripts/aws/run_soak_on_ec2.sh 500 1.0`
 - **Exit:** 254 (pager) / SSM TimedOut
 - **Result:** Poll loop exited after 5 min; final `aws ssm get-command-invocation` failed (no `less` pager). SSM default 3600s timeout killed soak mid-run (exit 137) before 500 requests completed.
+
+## 2026-07-01 — aws/run_soak_on_ec2.sh (B0 full soak, attempt 2)
+- **Command:** `0-work/scripts/aws/run_soak_on_ec2.sh 500 1.0`
+- **Exit:** 0
+- **Result:** SSM `786b89a4-aa01-42e4-a967-7dfd2a69b011`. CBA, 500/500 CDN GETs, 0% errors, ~1271 docs/hr, ~502 MB, 1416s elapsed.

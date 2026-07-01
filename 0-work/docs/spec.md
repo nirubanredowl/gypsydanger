@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Stage 1 index complete (~1,838 tickers, ~1.26M documents). AWS baseline live: S3 `gypsy-danger-asx-691811257790`, soak EC2 `i-0812f82dd21298e96` (SSM online). Index CSVs uploaded to S3. B0 micro-soak on EC2: 50/50 CDN GETs OK (0% errors, ~788 docs/hr at 1 req/s + download latency).
+**Current state:** Stage 1 index complete (~1,838 tickers, ~1.26M documents). AWS baseline live: S3 `gypsy-danger-asx-691811257790`, soak EC2 `i-0812f82dd21298e96`. B0 full soak complete: 500/500 CDN GETs on EC2 (0% errors, ~1271 docs/hr at 1 req/s).
 
-**Next action:** Run full B0 soak (500 requests, rate-limit sweep) → scaling ladder (1→4→10→20→50→100 workers) → SQS + ASG fetch stack.
+**Next action:** Scaling ladder (1→4→10→20→50→100 workers) to find fleet size → deploy SQS + ASG fetch stack.
 
 **Constraints**
 
