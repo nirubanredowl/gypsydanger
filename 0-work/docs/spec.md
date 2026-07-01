@@ -69,7 +69,7 @@ data/
 
 **Current state:** Stage 1 scripts implemented (`01`–`03` + `00_asx_api.py`). Step 2 index complete for ~1,838 tickers (~1.26M documents). AWS CLI + MCP configured in repo. Stage 2 strategy: [`0-work/plans/aws-distributed-fetch.md`](../plans/aws-distributed-fetch.md).
 
-**Next action:** Run B0 CDN soak (`07_cdn_soak_test.py`) → scaling ladder → then `aws login` and deploy AWS stack.
+**Next action:** Run B0 CDN soak (`07_cdn_soak_test.py`) → scaling ladder → deploy AWS stack (S3 + SQS + workers).
 
 **Constraints**
 
