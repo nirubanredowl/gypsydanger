@@ -5,12 +5,17 @@ set -euo pipefail
 
 RUNG="${1:?rung number required}"
 WORKERS="${2:?worker count required}"
+RUN_ID="${3:-}"
 
 source /etc/profile.d/gypsy-danger.sh
 export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-ap-southeast-2}"
 
 BUCKET="${GYPSY_S3_BUCKET:?GYPSY_S3_BUCKET required}"
-PREFIX="logs/ladder/rung${RUNG}/"
+if [[ -n "$RUN_ID" ]]; then
+  PREFIX="logs/ladder/rung${RUNG}/${RUN_ID}/"
+else
+  PREFIX="logs/ladder/rung${RUNG}/"
+fi
 BASELINE_DOCS_HR="${GYPSY_LADDER_BASELINE_DOCS_HR:-1271}"
 
 # ~keys/worker × (1s rate + 7s download) + buffer
@@ -24,7 +29,7 @@ PY
 )"
 DEADLINE=$(( $(date +%s) + WAIT_MAX_S ))
 
-echo "Waiter: rung=${RUNG} workers=${WORKERS} prefix=s3://${BUCKET}/${PREFIX} max_wait=${WAIT_MAX_S}s"
+echo "Waiter: rung=${RUNG} run=${RUN_ID:-legacy} workers=${WORKERS} prefix=s3://${BUCKET}/${PREFIX} max_wait=${WAIT_MAX_S}s"
 
 while [[ $(date +%s) -lt $DEADLINE ]]; do
   FOUND="$(aws s3 ls "s3://${BUCKET}/${PREFIX}" 2>/dev/null | grep -c 'worker_.*\.json' || true)"
@@ -61,6 +66,7 @@ err_pct = (100.0 * total_err / total_req) if total_req else 0
 passed = agg_docs_hr >= linear_target and err_pct <= 1.0
 print(json.dumps({
     "rung": int("${RUNG}"),
+    "run_id": "${RUN_ID}" or None,
     "workers": workers,
     "worker_results": len(rows),
     "total_requests": total_req,
@@ -101,19 +107,39 @@ PY
 )"
 
 if [[ -n "${GYPSY_SNS_TOPIC_ARN:-}" ]]; then
-  VERDICT="$(python3 -c "import json; print('PASS' if json.load(open('/tmp/ladder-rung${RUNG}-summary.json'))['passed'] else 'DONE')")"
-  aws sns publish \
-    --topic-arn "$GYPSY_SNS_TOPIC_ARN" \
-    --subject "Gypsy Danger ladder rung ${RUNG} — ${VERDICT}" \
-    --message "$MSG"
-  echo "SNS notification sent"
+  LOCK_KEY="${PREFIX}.notify_sent"
+  if aws s3api head-object --bucket "$BUCKET" --key "$LOCK_KEY" >/dev/null 2>&1; then
+    echo "SNS already sent for ${PREFIX} — skipping duplicate notification"
+  else
+    printf notify > "/tmp/ladder-notify-$$.lock"
+    if aws s3api put-object \
+        --bucket "$BUCKET" \
+        --key "$LOCK_KEY" \
+        --body "/tmp/ladder-notify-$$.lock" \
+        --if-none-match '*' \
+        --no-cli-pager >/dev/null 2>&1; then
+      VERDICT="$(python3 -c "import json; print('PASS' if json.load(open('/tmp/ladder-rung${RUNG}-summary.json'))['passed'] else 'DONE')")"
+      aws sns publish \
+        --topic-arn "$GYPSY_SNS_TOPIC_ARN" \
+        --subject "Gypsy Danger ladder rung ${RUNG} — ${VERDICT}" \
+        --message "$MSG"
+      echo "SNS notification sent"
+    else
+      echo "Another waiter already sent notification for ${PREFIX}"
+    fi
+  fi
 else
   echo "$MSG"
 fi
 
-# Terminate ladder workers for this rung
+# Terminate ladder workers for this run
+if [[ -n "$RUN_ID" ]]; then
+  FILTER_RUN="Name=tag:LadderRunId,Values=${RUN_ID}"
+else
+  FILTER_RUN="Name=tag:LadderRung,Values=${RUNG}"
+fi
 IDS="$(aws ec2 describe-instances \
-  --filters "Name=tag:Project,Values=gypsy-danger" "Name=tag:LadderRung,Values=${RUNG}" \
+  --filters "Name=tag:Project,Values=gypsy-danger" "$FILTER_RUN" \
     "Name=instance-state-name,Values=pending,running,stopping,stopped" \
   --query 'Reservations[].Instances[].InstanceId' --output text)"
 if [[ -n "$IDS" && "$IDS" != "None" ]]; then

@@ -48,8 +48,10 @@ BUCKET="${GYPSY_S3_BUCKET:?set GYPSY_S3_BUCKET}"
 SOAK_ID="${GYPSY_SOAK_INSTANCE_ID:-i-0812f82dd21298e96}"
 KEYS_PER_WORKER=$(( 2000 / WORKERS ))
 RATE_LIMIT_S="${GYPSY_LADDER_RATE_LIMIT_S:-1.0}"
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+LOG_PREFIX="logs/ladder/rung${RUNG}/${RUN_ID}"
 
-echo "==> Rung ${RUNG}: ${WORKERS} workers × ${KEYS_PER_WORKER} keys @ ${RATE_LIMIT_S} req/s"
+echo "==> Rung ${RUNG}: ${WORKERS} workers × ${KEYS_PER_WORKER} keys @ ${RATE_LIMIT_S} req/s (run ${RUN_ID})"
 
 # Ensure pool + shards exist locally and on S3
 if [[ ! -f "$ROOT/data/ladder/pool/document_keys.txt" ]]; then
@@ -102,8 +104,8 @@ python3 07_cdn_soak_test.py \\
   --label worker_${shard_id} \\
   --result-json /tmp/result.json \\
   2>&1 | tee /tmp/soak.log
-aws s3 cp /tmp/result.json "s3://${BUCKET}/logs/ladder/rung${RUNG}/worker_${shard_id}.json"
-aws s3 cp /tmp/soak.log "s3://${BUCKET}/logs/ladder/rung${RUNG}/worker_${shard_id}.log"
+aws s3 cp /tmp/result.json "s3://${BUCKET}/${LOG_PREFIX}/worker_${shard_id}.json"
+aws s3 cp /tmp/soak.log "s3://${BUCKET}/${LOG_PREFIX}/worker_${shard_id}.log"
 USERDATA
 )"
 
@@ -116,7 +118,7 @@ USERDATA
     --user-data "$user_data" \
     --metadata-options HttpTokens=required \
     --tag-specifications \
-      "ResourceType=instance,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=gypsy-danger},{Key=Application,Value=gypsy-danger-asx-fetch},{Key=Stage,Value=soak},{Key=LadderRung,Value=${RUNG}},{Key=ManagedBy,Value=gypsy-danger-ladder}]" \
+      "ResourceType=instance,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=gypsy-danger},{Key=Application,Value=gypsy-danger-asx-fetch},{Key=Stage,Value=soak},{Key=LadderRung,Value=${RUNG}},{Key=LadderRunId,Value=${RUN_ID}},{Key=ManagedBy,Value=gypsy-danger-ladder}]" \
     --query 'Instances[0].InstanceId' \
     --no-cli-pager \
     --output text
@@ -132,7 +134,7 @@ done
 
 # Start waiter on soak instance (polls S3, sends SNS, terminates workers)
 WAITER_B64="$(base64 -w0 < "$ROOT/0-work/scripts/aws/ladder_wait_and_notify.sh")"
-WAITER_CMD="echo ${WAITER_B64} | base64 -d > /tmp/ladder_wait.sh && chmod +x /tmp/ladder_wait.sh && /tmp/ladder_wait.sh ${RUNG} ${WORKERS}"
+WAITER_CMD="echo ${WAITER_B64} | base64 -d > /tmp/ladder_wait.sh && chmod +x /tmp/ladder_wait.sh && /tmp/ladder_wait.sh ${RUNG} ${WORKERS} ${RUN_ID}"
 WAIT_TIMEOUT="$(python3 - <<PY
 import math
 k = int("${KEYS_PER_WORKER}")
@@ -153,7 +155,7 @@ echo
 echo "=== Ladder rung ${RUNG} started ==="
 echo "Workers:     ${WORKERS} instance(s): ${LAUNCHED[*]}"
 echo "Waiter SSM:  ${WAIT_CMD_ID} on ${SOAK_ID} (timeout ${WAIT_TIMEOUT}s)"
-echo "Results:     s3://${BUCKET}/logs/ladder/rung${RUNG}/"
+echo "Results:     s3://${BUCKET}/${LOG_PREFIX}/"
 if [[ -n "${GYPSY_SNS_TOPIC_ARN:-}" ]]; then
   echo "Notify:      email via SNS when rung completes"
 else
