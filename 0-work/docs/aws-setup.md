@@ -81,6 +81,8 @@ GYPSY_NOTIFY_EMAIL=you@example.com
 
 Details: [`scaling-ladder-execution.md`](../plans/scaling-ladder-execution.md)
 
+**Progress during fetch:** [`fetch-progress-notifications.md`](fetch-progress-notifications.md) — on-demand email, S3 trigger, automatic milestones.
+
 ## AWS MCP (Cursor)
 
 MCP is configured in two places (Cursor merges them):

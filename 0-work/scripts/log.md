@@ -142,3 +142,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 
 ## 2026-07-02 — run_ladder_rung.sh --async 4 (complete)
 - **Result:** 1,999/2,000 success; aggregate **17,870 docs/hr**; FAIL strict threshold but 4.8× rung 2. **Fleet: 20 workers** for Phase C.
+
+## 2026-07-02 — fetch progress notifications
+- **Command:** `progress_email.sh`, `install_progress_watcher.sh`
+- **Exit:** 0
+- **Result:** On-demand + event-driven SNS progress emails; 5-min cron on soak-01.
