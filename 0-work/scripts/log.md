@@ -114,3 +114,13 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** (doc + script commit)
 - **Exit:** —
 - **Result:** `scaling-ladder-execution.md`, `08_build_ladder_pool.py`, `run_ladder_rung.sh --async`, `bootstrap_notifications.sh`, soak `--async` + SNS email on completion.
+
+## 2026-07-01 — bootstrap_notifications.sh + test email
+- **Command:** `bootstrap_notifications.sh` (after adding `GYPSY_NOTIFY_EMAIL=niruban@redowl.ai`)
+- **Exit:** 254
+- **Result:** Blocked — `niruban_cursor` needs updated `iam-baseline-policy.json` (SNS sid) attached. Re-run bootstrap + `notify_sns.sh` after attach.
+
+## 2026-07-01 — bootstrap_notifications.sh + test email (retry)
+- **Command:** `bootstrap_notifications.sh` + `notify_sns.sh "Gypsy Danger test" ...`
+- **Exit:** 0
+- **Result:** SNS topic `gypsy-danger-notify` created; `niruban@redowl.ai` subscribed (pending confirmation); test message published.
