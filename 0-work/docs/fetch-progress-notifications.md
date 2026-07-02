@@ -73,7 +73,7 @@ set -a && source 0-work/scripts/.env && set +a
 0-work/scripts/aws/install_progress_watcher.sh
 ```
 
-This syncs scripts to S3, installs a **5-minute cron** on soak-01, and logs to `/var/log/gypsy-progress-watcher.log`.
+This syncs scripts to S3, installs **cronie**, and adds a **5-minute root crontab** on soak-01 (logs to `/var/log/gypsy-progress-watcher.log`).
 
 ---
 

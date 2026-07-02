@@ -22,13 +22,12 @@ mkdir -p "\$ROOT/0-work/scripts/aws"
 aws s3 cp "s3://\${GYPSY_S3_BUCKET}/scripts/09_fetch_progress.py" "\$ROOT/0-work/scripts/"
 aws s3 cp "s3://\${GYPSY_S3_BUCKET}/scripts/09_progress_watcher.py" "\$ROOT/0-work/scripts/"
 aws s3 sync "s3://\${GYPSY_S3_BUCKET}/scripts/aws/" "\$ROOT/0-work/scripts/aws/" --exclude '*' --include '*.sh'
+dnf install -y cronie || true
+systemctl enable --now crond 2>/dev/null || true
 chmod +x "\$ROOT/0-work/scripts/aws/"*.sh 2>/dev/null || true
-CRON_LINE='*/5 * * * * root source /etc/profile.d/gypsy-danger.sh && /opt/gypsy-danger/0-work/scripts/aws/progress_watcher.sh >> /var/log/gypsy-progress-watcher.log 2>&1'
-grep -q gypsy-progress-watcher /etc/cron.d/gypsy-danger 2>/dev/null || {
-  echo "\$CRON_LINE" >> /etc/cron.d/gypsy-danger
-  chmod 644 /etc/cron.d/gypsy-danger
-}
-echo "Cron installed: /etc/cron.d/gypsy-danger"
+( crontab -l 2>/dev/null | grep -v gypsy-progress-watcher; echo "*/5 * * * * source /etc/profile.d/gypsy-danger.sh && /opt/gypsy-danger/0-work/scripts/aws/progress_watcher.sh >> /var/log/gypsy-progress-watcher.log 2>&1" ) | /usr/bin/crontab -
+echo "Cron installed via root crontab"
+/usr/bin/crontab -l | grep gypsy || true
 REMOTE
 )"
 
