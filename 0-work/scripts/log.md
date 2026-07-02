@@ -134,3 +134,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `run_ladder_rung.sh --async 2` (3 attempts — fixed `--ticker` required with `--keys-file`, fixed shard path)
 - **Exit:** 0
 - **Result:** Rung 2 running: workers `i-019b2dd79d2a3cd2b` … `i-09d6d788c8ead4f48`, waiter SSM `59041f5a-2778-4798-a5bf-8162fd15960f`. ~1.1 h; SNS email on completion.
+
+## 2026-07-02 — run_ladder_rung.sh --async 4
+- **Command:** `run_ladder_rung.sh --async 4`
+- **Exit:** 0
+- **Result:** 20 workers launched; run `20260702T014116Z-98609`; waiter SSM `0d82c840-4460-4be8-8230-dda705d55d60`; ~15–25 min ETA; single SNS email on completion.
