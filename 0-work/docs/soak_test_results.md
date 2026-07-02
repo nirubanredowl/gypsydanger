@@ -54,18 +54,26 @@ Record each run here. Automated runs also write JSON to `s3://$BUCKET/logs/ladde
 
 ---
 
-## Rung 4 — (pending)
+## Rung 4 — (2026-07-02)
 
-- **Workers:** 20
-- **Keys / worker:** 100
-- **Verdict:**
+- **Run ID:** `20260702T014116Z-98609`
+- **Workers:** 20 (separate EC2)
+- **Keys / worker:** 100 (2,000 total)
+- **Rate limit:** 1.0 req/s
+- **Success:** 1,999/2,000 (0.05% errors — 1× other on worker_07)
+- **Aggregate docs/hr:** **17,870**
+- **Per-worker docs/hr:** 894–1,711 (median ~1,325)
+- **Wall clock:** ~403 s (~6.7 min)
+- **vs B0 linear (×20 = 25,420):** 70.3% full linear; **88% of 80% pass target (20,336)**
+- **vs rung 2 (×5 workers):** 3,703 → 17,870 = **4.8×** throughput (near-linear scale-up)
+- **Verdict:** **FAIL / plateau** by strict rule, but **clear winner for fleet sizing**
+- **S3:** `s3://gypsy-danger-asx-691811257790/logs/ladder/rung4/20260702T014116Z-98609/summary.json`
 
 ---
 
 ## Chosen fleet size
 
-*(provisional — rung 2 borderline fail)*
-
-- **Highest passing rung:** B0 only (strict); rung 2 at 73% linear with zero errors
-- **Workers for Phase C fetch:** **4** conservative, or probe rung 4 (20) before deciding
-- **Notes:** At 4 workers × ~926–1,245 docs/hr each, full corpus (~1.26M) ≈ **14–17 days**. More workers may not help much if CDN caps near ~3,700 aggregate docs/hr.
+- **Highest useful rung:** **Rung 4 (20 workers)** — scales well from rung 2; not capped at ~3,700 aggregate
+- **Workers for Phase C fetch:** **20**
+- **Expected throughput:** ~17,870 docs/hr → full corpus (~1.26M) in **~3 days**
+- **Notes:** Strict 80% linear threshold is conservative; 0.05% error rate is acceptable. Rung 5/6 optional but likely diminishing returns.

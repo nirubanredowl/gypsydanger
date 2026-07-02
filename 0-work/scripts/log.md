@@ -139,3 +139,6 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `run_ladder_rung.sh --async 4`
 - **Exit:** 0
 - **Result:** 20 workers launched; run `20260702T014116Z-98609`; waiter SSM `0d82c840-4460-4be8-8230-dda705d55d60`; ~15–25 min ETA; single SNS email on completion.
+
+## 2026-07-02 — run_ladder_rung.sh --async 4 (complete)
+- **Result:** 1,999/2,000 success; aggregate **17,870 docs/hr**; FAIL strict threshold but 4.8× rung 2. **Fleet: 20 workers** for Phase C.

@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Stage 1 index complete (~1,838 tickers, ~1.26M documents). B0 full soak passed (500/500, ~1,271 docs/hr per worker). Scaling ladder design + scripts ready; SNS email notifications supported for async runs.
+**Current state:** Ladder complete through rung 4. B0 baseline ~1,271 docs/hr/worker. Rung 2: 3,703 aggregate (4 workers). Rung 4: **17,870 aggregate (20 workers)**, 0.05% errors. **Fleet choice: 20 workers.**
 
-**Next action:** Run `bootstrap_notifications.sh` (confirm email) → build ladder pool → `run_ladder_rung.sh --async 2` (4 workers).
+**Next action:** Deploy Phase C fetch stack (SQS + ASG, 20 spot workers) → enqueue tickers → full PDF fetch to S3.
 
 **Constraints**
 
