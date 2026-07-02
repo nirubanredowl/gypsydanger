@@ -2,6 +2,8 @@
 
 Tools for deploying and operating the Stage 2 distributed fetch from Cursor.
 
+**Reusable playbook (another project):** [`aws-programmatic-setup.md`](aws-programmatic-setup.md) — naming, IAM, bootstrap scripts, SSM, SNS, agent workflow.
+
 ## AWS CLI
 
 Installed in this environment:
