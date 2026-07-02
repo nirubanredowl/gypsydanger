@@ -95,7 +95,7 @@ aws s3 cp "s3://${BUCKET}/scripts/07_cdn_soak_test.py" "\$ROOT/0-work/scripts/"
 aws s3 cp "s3://${BUCKET}/ladder/shards/${WORKERS}workers/shard_${shard_id}.txt" "\$ROOT/data/ladder/shard.txt"
 cd "\$ROOT/0-work/scripts"
 python3 07_cdn_soak_test.py \\
-  --keys-file ../data/ladder/shard.txt \\
+  --keys-file "\$ROOT/data/ladder/shard.txt" \\
   --max-requests ${KEYS_PER_WORKER} \\
   --rate-limit-s ${RATE_LIMIT_S} \\
   --no-cache \\

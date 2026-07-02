@@ -124,3 +124,13 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `bootstrap_notifications.sh` + `notify_sns.sh "Gypsy Danger test" ...`
 - **Exit:** 0
 - **Result:** SNS topic `gypsy-danger-notify` created; `niruban@redowl.ai` subscribed (pending confirmation); test message published.
+
+## 2026-07-01 — notify_sns.sh test (post-confirm)
+- **Command:** `notify_sns.sh "Gypsy Danger test" ...`
+- **Exit:** 0
+- **Result:** Re-sent after subscription confirmed (first send was before confirm, so SNS dropped it).
+
+## 2026-07-02 — run_ladder_rung.sh --async 2
+- **Command:** `run_ladder_rung.sh --async 2` (3 attempts — fixed `--ticker` required with `--keys-file`, fixed shard path)
+- **Exit:** 0
+- **Result:** Rung 2 running: workers `i-019b2dd79d2a3cd2b` … `i-09d6d788c8ead4f48`, waiter SSM `59041f5a-2778-4798-a5bf-8162fd15960f`. ~1.1 h; SNS email on completion.

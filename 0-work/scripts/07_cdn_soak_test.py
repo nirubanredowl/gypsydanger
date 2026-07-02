@@ -24,8 +24,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--ticker",
-        required=True,
-        help="Ticker whose announcements.csv supplies documentKeys",
+        help="Ticker whose announcements.csv supplies documentKeys (omit if --keys-file)",
     )
     parser.add_argument(
         "--max-requests",
@@ -108,11 +107,15 @@ def http_status(exc: BaseException) -> int | None:
 
 def main() -> int:
     args = parse_args()
-    ticker = args.ticker.upper()
     if args.keys_file:
         keys = load_keys_from_file(args.keys_file)
         source = str(args.keys_file)
+        ticker = (args.ticker or "POOL").upper()
     else:
+        if not args.ticker:
+            print("error: --ticker required unless --keys-file is set", file=sys.stderr)
+            return 2
+        ticker = args.ticker.upper()
         keys = load_document_keys(ticker)
         source = ticker
         if args.key_offset:
