@@ -41,6 +41,17 @@ def parse_args() -> argparse.Namespace:
         default=asx.MIN_PDF_BYTES,
         help=f"Skip re-download if file exists and >= this size (default {asx.MIN_PDF_BYTES})",
     )
+    parser.add_argument(
+        "--annual-reports-only",
+        action="store_true",
+        help="Fetch only rows classified as annual reports (see announcements-schema.md)",
+    )
+    parser.add_argument(
+        "--annual-filter",
+        choices=("strict", "loose"),
+        default="strict",
+        help="Annual report filter mode when --annual-reports-only is set (default: strict)",
+    )
     return parser.parse_args()
 
 
@@ -87,6 +98,8 @@ def fetch_ticker(
     log: dict[str, list[dict[str, str]]],
     *,
     min_bytes: int,
+    annual_reports_only: bool = False,
+    annual_filter: str = "strict",
 ) -> tuple[int, int, int]:
     ann_path = asx.announcements_csv_path(ticker)
     if not ann_path.exists():
@@ -97,9 +110,15 @@ def fetch_ticker(
     raw_dir = asx.entity_dir(ticker) / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    ok = skip = fail = 0
+    ok = skip = fail = filtered = 0
     with ann_path.open(encoding="utf-8", newline="") as fh:
         for row in csv.DictReader(fh):
+            if annual_reports_only and not asx.is_annual_report_announcement(
+                row, mode=annual_filter
+            ):
+                filtered += 1
+                continue
+
             document_key = (row.get("documentKey") or "").strip()
             if not document_key:
                 continue
@@ -148,6 +167,9 @@ def fetch_ticker(
                 fail += 1
                 print(f"    FAIL {document_key}: {exc}")
 
+    if annual_reports_only and filtered:
+        print(f"  filtered_out={filtered} (non-annual rows)")
+
     return ok, skip, fail
 
 
@@ -163,10 +185,16 @@ def main() -> int:
 
     total_ok = total_skip = total_fail = 0
     for ticker in tickers:
-        print(f"[{ticker}] fetching PDFs...")
+        label = "annual report PDFs" if args.annual_reports_only else "PDFs"
+        print(f"[{ticker}] fetching {label}...")
         try:
             ok, skip, fail = fetch_ticker(
-                client, ticker, log, min_bytes=args.min_bytes
+                client,
+                ticker,
+                log,
+                min_bytes=args.min_bytes,
+                annual_reports_only=args.annual_reports_only,
+                annual_filter=args.annual_filter,
             )
             total_ok += ok
             total_skip += skip

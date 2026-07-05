@@ -52,7 +52,7 @@ data/
     raw/{documentKey}.pdf             # one file per announcement
 ```
 
-**Stage 1 scope:** index and fetch **all** announcements per entity. No document-type filtering — filter from `announcements.csv` later (e.g. annual reports for parse/analysis).
+**Stage 1 scope:** index all announcements per entity; fetch can be scoped to annual reports via `--annual-reports-only` on `03_fetch_documents.py`. See [`0-work/docs/announcements-schema.md`](announcements-schema.md).
 
 **Fetch model:** Markit Digital JSON API — paginate by `entity_xid`, store full index per ticker, download PDFs by `documentKey`. See [`0-work/docs/links.md`](links.md) and [`0-work/plans/plan.md`](../plans/plan.md).
 
@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Ladder complete through rung 4. B0 baseline ~1,271 docs/hr/worker. Rung 2: 3,703 aggregate (4 workers). Rung 4: **17,870 aggregate (20 workers)**, 0.05% errors. **Fleet choice: 20 workers.**
+**Current state:** Index complete (~1,838 tickers, ~1.26M announcement rows). Annual report filter validated — **22,128 strict annual report PDFs** vs full corpus. Ladder complete through rung 4 (20 workers, ~17,870 docs/hr aggregate). Phase C fetch blocked pending legal review.
 
-**Next action:** Deploy Phase C fetch stack (SQS + ASG, 20 spot workers) → enqueue tickers → full PDF fetch to S3.
+**Next action:** Legal clearance → Phase C fetch with `--annual-reports-only` (strict) to S3 via 20-worker fleet.
 
 **Constraints**
 

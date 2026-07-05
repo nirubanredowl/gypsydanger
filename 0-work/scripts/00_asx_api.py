@@ -46,6 +46,30 @@ ANNOUNCEMENT_COLUMNS = [
 
 MIN_PDF_BYTES = 50 * 1024
 
+# Co-tags commonly present on ASX annual report filings (Appendix 4E bundle).
+FULL_YEAR_ANNOUNCEMENT_TYPES = frozenset(
+    {
+        "Full Year Accounts",
+        "Full Year Audit Review",
+        "Full Year Directors' Report",
+        "Full Year Directors' Statement",
+        "Preliminary Final Report",
+    }
+)
+
+# Headlines matching these patterns are tagged "Annual Report" but are not the
+# primary statutory annual report PDF we want for parse/analysis.
+ANNUAL_REPORT_HEADLINE_EXCLUDE_RE = re.compile(
+    r"shareholder review|shareholder update|sustainability report|summary review|"
+    r"form 20-f|economic contribution|non-renounceable|payments to governments",
+    re.IGNORECASE,
+)
+
+ANNUAL_REPORT_HEADLINE_INCLUDE_RE = re.compile(
+    r"annual report|appendix 4e",
+    re.IGNORECASE,
+)
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
@@ -375,6 +399,49 @@ def announcement_row(
             item.get("symbolsSecondary") or [], ensure_ascii=False
         ),
     }
+
+
+def parse_announcement_types(raw: str | None) -> set[str]:
+    """Parse the JSON-encoded announcementTypes column from announcements CSV."""
+    if not raw:
+        return set()
+    try:
+        values = json.loads(raw)
+    except json.JSONDecodeError:
+        return set()
+    if not isinstance(values, list):
+        return set()
+    return {str(value) for value in values if value}
+
+
+def is_annual_report_announcement(
+    row: dict[str, str],
+    *,
+    mode: str = "strict",
+) -> bool:
+    """Return True when an announcements CSV row is an annual report filing.
+
+    Modes:
+    - ``loose``: ``announcementTypes`` contains ``Annual Report``.
+    - ``strict`` (default): loose match plus either a full-year co-tag or an
+      annual-report headline, excluding known false-positive headline patterns
+      (Shareholder Review, Form 20-F, sustainability summaries, etc.).
+    """
+    if mode not in {"loose", "strict"}:
+        raise ValueError(f"unsupported annual report filter mode: {mode}")
+
+    types = parse_announcement_types(row.get("announcementTypes"))
+    if "Annual Report" not in types:
+        return False
+    if mode == "loose":
+        return True
+
+    headline = row.get("headline") or ""
+    if ANNUAL_REPORT_HEADLINE_EXCLUDE_RE.search(headline):
+        return False
+    if types & FULL_YEAR_ANNOUNCEMENT_TYPES:
+        return True
+    return bool(ANNUAL_REPORT_HEADLINE_INCLUDE_RE.search(headline))
 
 
 def normalise_market_cap(value: str) -> str:

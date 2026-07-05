@@ -33,7 +33,7 @@ Paginate until all items retrieved. No type filter in Stage 1.
 
 ### Response fields (per item)
 
-Stored on `data/entities/{TICKER}/announcements.csv` — one column per field:
+Stored on `data/entities/{TICKER}/{TICKER}_Announcements.csv` — one column per field. Full column and tag reference: [`announcements-schema.md`](announcements-schema.md).
 
 | Field | Type |
 |-------|------|
@@ -84,7 +84,7 @@ flowchart LR
 | **`entity_xid`** | Company id for paginated announcements | Resolved in Step B; stored on **`data/entities.csv`** |
 | **`documentKey`** | One PDF file | Every row in `data.items[]`; stored on **`entities/{TICKER}/announcements.csv`** |
 
-Stage 1 indexes and fetches **all** announcements — no type filter. Filter from `announcements.csv` later when needed.
+Stage 1 indexes **all** announcements per entity. Filter from the announcements CSV when fetching or parsing (e.g. `--annual-reports-only` on the fetcher — see [`announcements-schema.md`](announcements-schema.md)).
 
 Example (CBA):
 
