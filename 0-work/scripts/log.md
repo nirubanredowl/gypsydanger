@@ -162,3 +162,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** (code) `11_fetch_annual_reports_s3.py`, `aws/run_preflight_fetch.sh`
 - **Exit:** —
 - **Result:** Preflight orchestrator: 2 EC2 workers (CBA+QGL, 5 loose annual reports each), S3 path `entities/{TICKER}/annual_reports/{YYYY}_{documentKey}.pdf`, simulated burn+rotate on worker 01, SNS summary. Run with `run_preflight_fetch.sh --async`. No PDF renamer script — naming via `s3_annual_report_key()`.
+
+## 2026-07-06 — preflight autostart (blocked at AWS auth)
+- **Command:** `tmux: run_preflight_autostart.sh`
+- **Exit:** pending
+- **Result:** Cloud agent missing AWS keys. Autostart waiting on `aws login --remote` or credentials in `.env`. On auth success → `run_preflight_fetch.sh --async` (loose annual reports). Log: `0-work/scripts/preflight-run.log`.
