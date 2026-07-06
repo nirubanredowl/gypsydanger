@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Phase C complete** (~22,560 loose annual reports in S3). **CFO change fetch** scripts ready — ~2,133 tier-A announcements; S3 path `entities/{TICKER}/cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf`. **Stage 3 parse** in design — see [`0-work/docs/parse-spec.md`](parse-spec.md).
+**Current state:** **Phase C complete** (~22,560 annual reports in S3). **CFO change fetch complete** — 2,133 tier-A PDFs at `entities/{TICKER}/cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf`. **Stage 3 parse** in design — see [`0-work/docs/parse-spec.md`](parse-spec.md).
 
-**Next action:** Run `aws/run_cfo_changes_fetch.sh --async` → then review sample PDFs (`14_parse_sample_links.py`) → lock Parse B table schema.
+**Next action:** Review sample PDFs (`14_parse_sample_links.py`) → lock Parse B table schema → pilot Parse A on ~10 tickers.
 
 **Constraints**
 

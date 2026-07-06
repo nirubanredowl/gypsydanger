@@ -190,5 +190,5 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 
 ## 2026-07-06 — CFO change fetch resume
 - **Command:** `aws/run_cfo_changes_fetch.sh --async` (after waiter fix)
-- **Exit:** 0 (orchestrator); in progress
-- **Result:** Run `20260706T225009Z-cfo-fetch`; 10 workers; skips existing ~821 PDFs from prior run; progress `manifests/cfo_fetch_progress.json`.
+- **Exit:** 0
+- **Result:** **PASS** — run `20260706T225009Z-cfo-fetch`; 2,133/2,133 tier-A PDFs in S3 (`1,231` uploaded + `902` skipped this run); 899 tickers; 0 failures; ~15 min. Progress manifest accurate; email summary double-counted interim `_progress.json` files (cosmetic).
