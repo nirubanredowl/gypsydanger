@@ -49,8 +49,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--annual-filter",
         choices=("strict", "loose"),
-        default="strict",
-        help="Annual report filter mode when --annual-reports-only is set (default: strict)",
+        default="loose",
+        help="Annual report filter mode when --annual-reports-only is set (default: loose)",
+    )
+    parser.add_argument(
+        "--burn-error-pct",
+        type=float,
+        default=1.0,
+        help="Rolling-window 429+503 pct that marks the IP burned (default 1.0)",
+    )
+    parser.add_argument(
+        "--burn-consecutive-429",
+        type=int,
+        default=5,
+        help="Consecutive 429 responses that mark the IP burned (default 5)",
     )
     return parser.parse_args()
 
@@ -99,8 +111,9 @@ def fetch_ticker(
     *,
     min_bytes: int,
     annual_reports_only: bool = False,
-    annual_filter: str = "strict",
-) -> tuple[int, int, int]:
+    annual_filter: str = "loose",
+    burn: asx.CdnBurnTracker | None = None,
+) -> tuple[int, int, int, bool]:
     ann_path = asx.announcements_csv_path(ticker)
     if not ann_path.exists():
         raise FileNotFoundError(
@@ -111,6 +124,7 @@ def fetch_ticker(
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     ok = skip = fail = filtered = 0
+    burned = False
     with ann_path.open(encoding="utf-8", newline="") as fh:
         for row in csv.DictReader(fh):
             if annual_reports_only and not asx.is_annual_report_announcement(
@@ -155,7 +169,10 @@ def fetch_ticker(
                     }
                 )
                 ok += 1
+                if burn is not None:
+                    burned = burn.record_success()
             except Exception as exc:  # noqa: BLE001
+                status = asx.http_error_status(exc)
                 log["failed"].append(
                     {
                         "ticker": ticker,
@@ -166,11 +183,20 @@ def fetch_ticker(
                 )
                 fail += 1
                 print(f"    FAIL {document_key}: {exc}")
+                if burn is not None:
+                    burned = burn.record_error(status)
+
+            if burned:
+                print(
+                    f"  BURNED on {ticker} after {burn.total_requests} CDN requests "
+                    f"(429={burn.counts['429']}) — stop for IP rotation"
+                )
+                break
 
     if annual_reports_only and filtered:
         print(f"  filtered_out={filtered} (non-annual rows)")
 
-    return ok, skip, fail
+    return ok, skip, fail, burned
 
 
 def main() -> int:
@@ -182,24 +208,34 @@ def main() -> int:
 
     client = asx.AsxClient(use_cache=not args.no_cache)
     log = load_fetch_log(asx.fetch_log_path())
+    burn = asx.CdnBurnTracker(
+        burn_error_pct=args.burn_error_pct,
+        consecutive_429_limit=args.burn_consecutive_429,
+    )
 
     total_ok = total_skip = total_fail = 0
+    ip_burned = False
     for ticker in tickers:
         label = "annual report PDFs" if args.annual_reports_only else "PDFs"
-        print(f"[{ticker}] fetching {label}...")
+        filter_note = f" ({args.annual_filter})" if args.annual_reports_only else ""
+        print(f"[{ticker}] fetching {label}{filter_note}...")
         try:
-            ok, skip, fail = fetch_ticker(
+            ok, skip, fail, burned = fetch_ticker(
                 client,
                 ticker,
                 log,
                 min_bytes=args.min_bytes,
                 annual_reports_only=args.annual_reports_only,
                 annual_filter=args.annual_filter,
+                burn=burn,
             )
             total_ok += ok
             total_skip += skip
             total_fail += fail
             print(f"  success={ok} skipped={skip} failed={fail}")
+            if burned:
+                ip_burned = True
+                break
         except FileNotFoundError as exc:
             print(f"  ERROR: {exc}")
             total_fail += 1
@@ -209,6 +245,9 @@ def main() -> int:
         f"\nDone. success={total_ok} skipped={total_skip} failed={total_fail} "
         f"→ {asx.fetch_log_path()}"
     )
+    if ip_burned:
+        print("IP burned — terminate this EC2 instance and launch a replacement.")
+        return asx.BURN_EXIT_CODE
     return 1 if total_fail else 0
 
 

@@ -8,7 +8,6 @@ import csv
 import json
 import sys
 import time
-import urllib.error
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -60,14 +59,38 @@ def parse_args() -> argparse.Namespace:
         help="Skip first N keys after loading (use with --ticker)",
     )
     parser.add_argument(
+        "--start-offset",
+        type=int,
+        default=None,
+        help="Alias for --key-offset (used by burn rotation to resume a shard)",
+    )
+    parser.add_argument(
         "--label",
         default="",
         help="Worker label included in summary (e.g. shard_02)",
     )
     parser.add_argument(
+        "--rotation",
+        type=int,
+        default=0,
+        help="IP rotation count for this worker slot (metadata only)",
+    )
+    parser.add_argument(
         "--result-json",
         type=Path,
         help="Write machine-readable summary JSON to this path",
+    )
+    parser.add_argument(
+        "--burn-error-pct",
+        type=float,
+        default=1.0,
+        help="Rolling-window 429+503 pct that marks the IP burned (default 1.0)",
+    )
+    parser.add_argument(
+        "--burn-consecutive-429",
+        type=int,
+        default=5,
+        help="Consecutive 429 responses that mark the IP burned (default 5)",
     )
     return parser.parse_args()
 
@@ -99,14 +122,17 @@ def load_document_keys(ticker: str) -> list[str]:
     return keys
 
 
-def http_status(exc: BaseException) -> int | None:
-    if isinstance(exc, urllib.error.HTTPError):
-        return exc.code
-    return None
+def write_result(path: Path | None, payload: dict[str, object]) -> None:
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:
     args = parse_args()
+    start_offset = args.start_offset if args.start_offset is not None else args.key_offset
+
     if args.keys_file:
         keys = load_keys_from_file(args.keys_file)
         source = str(args.keys_file)
@@ -118,102 +144,120 @@ def main() -> int:
         ticker = args.ticker.upper()
         keys = load_document_keys(ticker)
         source = ticker
-        if args.key_offset:
-            keys = keys[args.key_offset :]
-    if args.single_key:
+
+    if start_offset:
+        keys = keys[start_offset:]
+    if args.single_key and keys:
         keys = [keys[0]]
+    if not keys:
+        print("error: no keys left after offset", file=sys.stderr)
+        return 1
 
     client = asx.AsxClient(
         rate_limit_s=args.rate_limit_s,
         use_cache=not args.no_cache,
     )
+    burn = asx.CdnBurnTracker(
+        burn_error_pct=args.burn_error_pct,
+        consecutive_429_limit=args.burn_consecutive_429,
+    )
 
-    stats = {
-        "requests": 0,
-        "success": 0,
-        "429": 0,
-        "503": 0,
-        "other_errors": 0,
-        "bytes": 0,
-    }
     started = time.monotonic()
+    keys_done = 0
+    burned = False
+    bytes_total = 0
 
     print(
         f"Soak: source={source} max_requests={args.max_requests} "
         f"rate_limit_s={args.rate_limit_s} single_key={args.single_key} "
-        f"no_cache={args.no_cache} unique_keys={len(keys)} label={args.label or '-'}"
+        f"no_cache={args.no_cache} unique_keys={len(keys)} "
+        f"start_offset={start_offset} label={args.label or '-'} rotation={args.rotation}"
     )
 
     idx = 0
-    while stats["requests"] < args.max_requests:
+    while keys_done < args.max_requests:
         document_key = keys[idx % len(keys)]
         idx += 1
         url = asx.cdn_pdf_url(document_key)
-        stats["requests"] += 1
 
         try:
             payload = client.get_bytes(url, use_cache=not args.no_cache)
-            stats["success"] += 1
-            stats["bytes"] += len(payload)
+            burned = burn.record_success()
+            keys_done += 1
+            bytes_total += len(payload)
         except Exception as exc:  # noqa: BLE001
-            status = http_status(exc)
-            if status == 429:
-                stats["429"] += 1
-            elif status == 503:
-                stats["503"] += 1
-            else:
-                stats["other_errors"] += 1
-            if stats["requests"] <= 5 or status in (429, 503):
-                print(f"  FAIL [{stats['requests']}] {document_key}: {exc}")
+            status = asx.http_error_status(exc)
+            burned = burn.record_error(status)
+            keys_done += 1
+            if burn.total_requests <= 5 or status in (429, 503) or burned:
+                print(f"  FAIL [{burn.total_requests}] {document_key}: {exc}")
 
-        if stats["requests"] % 50 == 0:
-            elapsed = time.monotonic() - started
-            rps = stats["requests"] / elapsed if elapsed else 0.0
+        if burned:
             print(
-                f"  progress requests={stats['requests']} success={stats['success']} "
-                f"429={stats['429']} 503={stats['503']} rps={rps:.2f}"
+                f"  BURNED after {burn.total_requests} requests "
+                f"(429={burn.counts['429']} 503={burn.counts['503']}) — exit for IP rotation"
+            )
+            break
+
+        if burn.total_requests % 50 == 0:
+            elapsed = time.monotonic() - started
+            rps = burn.total_requests / elapsed if elapsed else 0.0
+            print(
+                f"  progress requests={burn.total_requests} success={burn.counts['success']} "
+                f"429={burn.counts['429']} 503={burn.counts['503']} rps={rps:.2f}"
             )
 
     elapsed = time.monotonic() - started
-    err = stats["429"] + stats["503"] + stats["other_errors"]
-    err_pct = (100.0 * err / stats["requests"]) if stats["requests"] else 0.0
-    docs_hr = (3600.0 * stats["success"] / elapsed) if elapsed else 0.0
+    snap = burn.snapshot()
+    err_pct = float(snap["error_pct"])
+    docs_hr = (3600.0 * burn.counts["success"] / elapsed) if elapsed else 0.0
 
     print("\n--- soak summary ---")
     if args.label:
         print(f"label:           {args.label}")
     print(f"source:          {source}")
+    print(f"rotation:        {args.rotation}")
+    print(f"start_offset:    {start_offset}")
+    print(f"keys_done:       {keys_done}")
     print(f"elapsed_s:       {elapsed:.1f}")
-    print(f"requests:        {stats['requests']}")
-    print(f"success:         {stats['success']}")
-    print(f"429:             {stats['429']}")
-    print(f"503:             {stats['503']}")
-    print(f"other_errors:    {stats['other_errors']}")
+    print(f"requests:        {snap['requests']}")
+    print(f"success:         {snap['success']}")
+    print(f"429:             {snap['429']}")
+    print(f"503:             {snap['503']}")
+    print(f"other_errors:    {snap['other_errors']}")
     print(f"error_pct:       {err_pct:.2f}%")
-    print(f"bytes:           {stats['bytes']}")
-    print(f"effective_rps:   {stats['requests'] / elapsed:.2f}" if elapsed else "effective_rps:   n/a")
+    print(f"burned:          {burned}")
+    print(f"bytes:           {bytes_total}")
+    print(f"effective_rps:   {snap['requests'] / elapsed:.2f}" if elapsed else "effective_rps:   n/a")
     print(f"docs_hr:         {docs_hr:.0f}")
 
+    result_payload: dict[str, object] = {
+        "label": args.label or None,
+        "source": source,
+        "rotation": args.rotation,
+        "start_offset": start_offset,
+        "keys_done": keys_done,
+        "absolute_offset": start_offset + keys_done,
+        "max_requests": args.max_requests,
+        "rate_limit_s": args.rate_limit_s,
+        "elapsed_s": round(elapsed, 1),
+        "requests": snap["requests"],
+        "success": snap["success"],
+        "429": snap["429"],
+        "503": snap["503"],
+        "other_errors": snap["other_errors"],
+        "error_pct": err_pct,
+        "burned": burned,
+        "bytes": bytes_total,
+        "docs_hr": round(docs_hr),
+        "complete": (not burned) and keys_done >= args.max_requests,
+    }
+    write_result(args.result_json, result_payload)
     if args.result_json:
-        payload = {
-            "label": args.label or None,
-            "source": source,
-            "max_requests": args.max_requests,
-            "rate_limit_s": args.rate_limit_s,
-            "elapsed_s": round(elapsed, 1),
-            "requests": stats["requests"],
-            "success": stats["success"],
-            "429": stats["429"],
-            "503": stats["503"],
-            "other_errors": stats["other_errors"],
-            "error_pct": round(err_pct, 2),
-            "bytes": stats["bytes"],
-            "docs_hr": round(docs_hr),
-        }
-        args.result_json.parent.mkdir(parents=True, exist_ok=True)
-        args.result_json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         print(f"result_json:     {args.result_json}")
 
+    if burned:
+        return asx.BURN_EXIT_CODE
     return 1 if err_pct > 1.0 else 0
 
 

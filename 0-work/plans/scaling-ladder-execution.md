@@ -103,6 +103,28 @@ CDN rate limits are often **per IP / per ASN**. Multiple processes on one EC2 sh
 
 ---
 
+## IP burn rotation
+
+AWS has **no managed rotating-proxy service**. The pattern is: **terminate the EC2 instance → launch a new one → new public IP**.
+
+| Signal | Threshold (default) | Action |
+|--------|---------------------|--------|
+| Rolling 429+503 rate | &gt; 1% over last 50 requests (after 20 min requests) | Worker exits code `2`, uploads `burned: true` to S3 |
+| Consecutive 429s | ≥ 5 | Same |
+
+Coordinator (`ladder_wait_and_notify.sh` on soak-01):
+
+1. Polls `worker_XX.json` in S3
+2. If `burned: true` and not `complete`: terminate instance, relaunch via `launch_ladder_worker.sh` with `--start-offset` = keys already done
+3. Max **3 rotations per worker slot** (`GYPSY_BURN_MAX_ROTATIONS`)
+4. When all slots report `complete: true`, aggregate and SNS notify
+
+Scripts: `00_asx_api.CdnBurnTracker`, `07_cdn_soak_test.py`, `aws/launch_ladder_worker.sh`.
+
+Phase C production fetch uses the same burn exit code on `03_fetch_documents.py`; ASG or the SQS coordinator replaces burned workers the same way.
+
+---
+
 ## How to run (async + email)
 
 ### One-time setup

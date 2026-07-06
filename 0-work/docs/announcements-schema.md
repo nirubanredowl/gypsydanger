@@ -72,7 +72,7 @@ Include when `"Annual Report"` appears in `announcementTypes`.
 
 Probe on sample tickers (CBA, BHP, WOW, QGL, TLS): **112 rows** out of **12,642** announcement rows (~0.9%).
 
-### `strict` (default for fetch)
+### `strict` (default for analysis probes)
 
 Include when:
 
@@ -90,11 +90,11 @@ Same sample tickers: **78 strict rows** (~0.6%). Full indexed corpus (Jul 2026, 
 # Dry-run sizing first
 python3 0-work/scripts/10_probe_annual_reports.py --all-indexed
 
-# Fetch annual reports only (strict filter)
+# Fetch annual reports only (loose filter — default when --annual-reports-only is set)
 python3 0-work/scripts/03_fetch_documents.py --annual-reports-only --ticker CBA
 
-# Include all loose "Annual Report" tags (more false positives)
-python3 0-work/scripts/03_fetch_documents.py --annual-reports-only --annual-filter loose
+# Stricter filter (fewer false positives)
+python3 0-work/scripts/03_fetch_documents.py --annual-reports-only --annual-filter strict
 ```
 
 ---

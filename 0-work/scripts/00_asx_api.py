@@ -444,6 +444,92 @@ def is_annual_report_announcement(
     return bool(ANNUAL_REPORT_HEADLINE_INCLUDE_RE.search(headline))
 
 
+BURN_EXIT_CODE = 2
+
+
+def http_error_status(exc: BaseException) -> int | None:
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code
+    return None
+
+
+class CdnBurnTracker:
+    """Detect CDN IP burn (sustained 429/503) during fetch or soak runs."""
+
+    def __init__(
+        self,
+        *,
+        window_size: int = 50,
+        burn_error_pct: float = 1.0,
+        consecutive_429_limit: int = 5,
+        min_requests: int = 20,
+    ) -> None:
+        self.window_size = window_size
+        self.burn_error_pct = burn_error_pct
+        self.consecutive_429_limit = consecutive_429_limit
+        self.min_requests = min_requests
+        self._window: list[str] = []
+        self._consecutive_429 = 0
+        self.total_requests = 0
+        self.counts = {
+            "success": 0,
+            "429": 0,
+            "503": 0,
+            "other_errors": 0,
+        }
+
+    def record_success(self) -> bool:
+        self.total_requests += 1
+        self.counts["success"] += 1
+        self._consecutive_429 = 0
+        self._push("ok")
+        return self.is_burned()
+
+    def record_error(self, status: int | None) -> bool:
+        self.total_requests += 1
+        if status == 429:
+            self.counts["429"] += 1
+            self._consecutive_429 += 1
+            self._push("429")
+        elif status == 503:
+            self.counts["503"] += 1
+            self._consecutive_429 = 0
+            self._push("503")
+        else:
+            self.counts["other_errors"] += 1
+            self._consecutive_429 = 0
+            self._push("other")
+        return self.is_burned()
+
+    def _push(self, kind: str) -> None:
+        self._window.append(kind)
+        if len(self._window) > self.window_size:
+            self._window.pop(0)
+
+    def is_burned(self) -> bool:
+        if self._consecutive_429 >= self.consecutive_429_limit:
+            return True
+        if self.total_requests < self.min_requests:
+            return False
+        window = self._window[-self.window_size :]
+        if len(window) < self.min_requests:
+            return False
+        rate_errors = sum(1 for kind in window if kind in ("429", "503"))
+        err_pct = 100.0 * rate_errors / len(window)
+        return err_pct > self.burn_error_pct
+
+    def snapshot(self) -> dict[str, int | float | bool]:
+        err = self.counts["429"] + self.counts["503"] + self.counts["other_errors"]
+        err_pct = (100.0 * err / self.total_requests) if self.total_requests else 0.0
+        return {
+            **self.counts,
+            "requests": self.total_requests,
+            "error_pct": round(err_pct, 2),
+            "burned": self.is_burned(),
+            "consecutive_429": self._consecutive_429,
+        }
+
+
 def normalise_market_cap(value: str) -> str:
     value = (value or "").strip()
     if not value or value.upper() == "SUSPENDED":

@@ -152,3 +152,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `python3 10_probe_annual_reports.py --show-excluded` and `--all-indexed --json`
 - **Exit:** 0
 - **Result:** `announcementTypes` contains filterable `Annual Report` tag. Sample tickers (CBA,BHP,WOW,QGL,TLS): 78 strict / 112 loose annual reports out of 12,642 rows. Full index: **22,128 strict** / 22,573 loose out of 1,260,035 rows. Fetcher updated with `--annual-reports-only`; schema doc at `0-work/docs/announcements-schema.md`.
+
+## 2026-07-06 — IP burn rotation + loose annual fetch default
+- **Command:** (code change — `CdnBurnTracker`, `launch_ladder_worker.sh`, waiter rotation)
+- **Exit:** —
+- **Result:** Workers exit code 2 when CDN IP burned (429/503 thresholds). `ladder_wait_and_notify.sh` terminates burned EC2 and relaunches with new public IP (max 3 rotations/slot). `03_fetch_documents.py` default `--annual-filter loose` when `--annual-reports-only` is set.

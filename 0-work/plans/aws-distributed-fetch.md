@@ -127,6 +127,17 @@ Worker algorithm:
 
 **Rate limit:** 1 req/s per worker (match current `AsxClient`). Back off on 429/503.
 
+**IP burn rotation:** There is no AWS “rotating proxy” service. When a worker’s public IP is **burned** (sustained 429/503), terminate that EC2 instance and launch a replacement — a new instance gets a **new public IP**. Implemented in:
+
+- `00_asx_api.py` → `CdnBurnTracker` (rolling-window error rate + consecutive 429s)
+- `07_cdn_soak_test.py` / `03_fetch_documents.py` → exit code `2` when burned
+- `aws/launch_ladder_worker.sh` → launch one worker (optionally resume shard via `--start-offset`)
+- `aws/ladder_wait_and_notify.sh` → coordinator terminates burned instances and relaunches (max `GYPSY_BURN_MAX_ROTATIONS`, default 3)
+
+Phase C fetch workers should use the same pattern: ASG replaces instances that exit with code `2`, or the SQS coordinator calls `launch_ladder_worker.sh`-style rotation.
+
+**Fetch scope:** Phase C uses `--annual-reports-only` with **`loose`** filter (~22.6k PDFs). See [`announcements-schema.md`](../docs/announcements-schema.md).
+
 **Idempotency:** Safe to re-run any ticker or restart any worker — S3 HEAD is the guard.
 
 ---
@@ -283,10 +294,11 @@ See **[Scaling ladder](#scaling-ladder)** and **[Soak test design](#soak-test-de
 | Step | Action |
 |------|--------|
 | C1 | Enqueue all ~1,838 tickers (skip `completed_tickers.txt`) |
-| C2 | Scale ASG to chosen worker count |
-| C3 | Monitor queue depth → 0 |
-| C4 | Merge worker jsonl logs → `fetch_log.json` |
-| C5 | Retry pass on failed `documentKey`s |
+| C2 | Scale ASG to chosen worker count (20) |
+| C3 | Workers run `03_fetch_documents.py --annual-reports-only` (loose filter, ~22.6k PDFs) |
+| C4 | Monitor queue depth → 0; rotate burned EC2 instances (exit code 2) |
+| C5 | Merge worker jsonl logs → `fetch_log.json` |
+| C6 | Retry pass on failed `documentKey`s |
 
 ### Phase D — Cutover
 
@@ -303,8 +315,9 @@ Local `data/entities/*/raw/` becomes optional cache. Parse stage reads from S3.
 | `0-work/scripts/04_enqueue_fetch_jobs.py` | Push ticker batches to SQS |
 | `0-work/scripts/05_fetch_worker.py` | SQS consumer → S3 upload |
 | `0-work/scripts/06_merge_fetch_logs.py` | Consolidate jsonl logs |
-| `0-work/scripts/07_cdn_soak_test.py` | B0 CDN probe — rate limit sweep, no PDF writes |
-| Refactor `03_fetch_documents.py` | Delegate to shared `fetch_ticker()` |
+| `0-work/scripts/07_cdn_soak_test.py` | B0 CDN probe — rate limit sweep, burn detection, no PDF writes |
+| `0-work/scripts/aws/launch_ladder_worker.sh` | Launch / relaunch one ladder worker EC2 (new IP) |
+| Refactor `03_fetch_documents.py` | Annual-report filter + burn exit code; delegate to shared fetch helpers |
 
 Env vars: `GYPSY_S3_BUCKET`, `GYPSY_SQS_QUEUE_URL`, `AWS_REGION=ap-southeast-2`.
 

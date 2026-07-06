@@ -69,7 +69,7 @@ data/
 
 **Current state:** Index complete (~1,838 tickers, ~1.26M announcement rows). Annual report filter validated — **22,128 strict annual report PDFs** vs full corpus. Ladder complete through rung 4 (20 workers, ~17,870 docs/hr aggregate). Phase C fetch blocked pending legal review.
 
-**Next action:** Legal clearance → Phase C fetch with `--annual-reports-only` (strict) to S3 via 20-worker fleet.
+**Next action:** Legal clearance → Phase C fetch with `--annual-reports-only` (loose, ~22.6k PDFs) to S3 via 20-worker fleet with burned-IP rotation.
 
 **Constraints**
 
