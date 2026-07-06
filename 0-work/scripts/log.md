@@ -173,7 +173,7 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Exit:** 0 (orchestrator); waiter FAIL
 - **Result:** Worker 00 (CBA) uploaded 5 PDFs. Worker 01 (QGL) simulated burn but rotation failed — waiter ran on soak-01 via SSM; soak IAM lacked `ec2:RunInstances`/`TerminateInstances`. Summary: `passed: false`, `worker_results: 1`.
 
-## 2026-07-06 03:26 — preflight retry 20260706T032641Z-preflight (PASS)
-- **Command:** `run_preflight_fetch.sh --async` + local `preflight_wait_and_notify.sh` (tmux)
-- **Exit:** 0
-- **Result:** Worker 00 skipped 5 existing CBA PDFs. Worker 01 burned after 2 uploads; replacement EC2 launched (`i-0168ba52498518c8c`), resumed at offset 4, uploaded final QGL PDF. Summary `passed: true`, 1 burn event, 1 rotation. SNS PASS email sent. Manifest: `s3://gypsy-danger-asx-691811257790/manifests/preflight/20260706T032641Z-preflight/summary.json`.
+## 2026-07-06 03:36 — Phase C full fetch started
+- **Command:** `run_phase_c_fetch.sh --async`
+- **Exit:** 0 (orchestrator)
+- **Result:** Run `20260706T033644Z-fetch`. 20 EC2 workers launched; 22,573 loose annual reports across 1,793 tickers (balanced shards). Local tmux waiter `phase-c-waiter-20260706T033644Z-fetch`. Progress: `s3://gypsy-danger-asx-691811257790/manifests/fetch_progress.json`. ETA ~1.5h at ladder baseline (~17,870 docs/hr).

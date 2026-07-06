@@ -73,6 +73,7 @@ python3 12_fetch_phase_c_shard.py \\
   --annual-filter loose \\
   --rate-limit-s ${RATE_LIMIT_S} \\
   --no-cache \\
+  --progress-s3-uri s3://${BUCKET}/${LOG_PREFIX}/worker_${shard_id}.json \\
   --result-json /tmp/result.json \\
   2>&1 | tee /tmp/fetch.log
 EXIT=\$?

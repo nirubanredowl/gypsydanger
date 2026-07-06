@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--result-json", type=Path)
     parser.add_argument("--burn-error-pct", type=float, default=1.0)
     parser.add_argument("--burn-consecutive-429", type=int, default=5)
+    parser.add_argument(
+        "--progress-s3-uri",
+        default=os.environ.get("GYPSY_PROGRESS_S3_URI", ""),
+        help="Upload in-progress worker JSON here after each ticker",
+    )
     return parser.parse_args()
 
 
@@ -69,6 +74,19 @@ def load_tickers(path: Path) -> list[str]:
     if not tickers:
         raise ValueError(f"empty ticker shard: {path}")
     return tickers
+
+
+def upload_progress(uri: str, payload: dict[str, object]) -> None:
+    if not uri:
+        return
+    tmp = Path(f"/tmp/progress-{os.getpid()}.json")
+    tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    try:
+        result = fetch.aws_cmd("s3", "cp", str(tmp), uri)
+        if result.returncode != 0:
+            print(f"  progress upload failed: {result.stderr.strip()}", file=sys.stderr)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def shard_report_count(
@@ -87,6 +105,55 @@ def shard_report_count(
             matched = matched[from_offset:]
         total += len(matched)
     return total
+
+
+def build_payload(
+    *,
+    args: argparse.Namespace,
+    tickers: list[str],
+    current_ticker: str,
+    resume_ticker_index: int,
+    resume_offset: int,
+    tickers_completed: int,
+    reports_target: int,
+    reports_done: int,
+    ok: int,
+    skip: int,
+    fail: int,
+    uploaded_keys: list[str],
+    elapsed: float,
+    snap: dict[str, object],
+    burned: bool,
+    complete: bool,
+) -> dict[str, object]:
+    return {
+        "worker_id": args.worker_id,
+        "run_id": args.run_id or None,
+        "rotation": args.rotation,
+        "ticker_index": resume_ticker_index,
+        "start_offset": resume_offset,
+        "current_ticker": current_ticker,
+        "tickers_total": len(tickers),
+        "tickers_done": tickers_completed,
+        "reports_target": reports_target,
+        "reports_done": reports_done,
+        "uploaded": ok,
+        "skipped_existing": skip,
+        "failed": fail,
+        "annual_filter": args.annual_filter,
+        "uploaded_keys": uploaded_keys[-20:],
+        "uploaded_keys_count": len(uploaded_keys),
+        "elapsed_s": round(elapsed, 1),
+        "requests": snap["requests"],
+        "success": snap["success"],
+        "429": snap["429"],
+        "503": snap["503"],
+        "other_errors": snap["other_errors"],
+        "error_pct": snap["error_pct"],
+        "burned": burned,
+        "complete": complete,
+        "bucket": args.bucket,
+    }
 
 
 def main() -> int:
@@ -190,6 +257,28 @@ def main() -> int:
                     f"    BURNED after {burn.total_requests} CDN requests "
                     f"at ticker={ticker} resume_offset={resume_offset}"
                 )
+                snap = burn.snapshot()
+                upload_progress(
+                    args.progress_s3_uri,
+                    build_payload(
+                        args=args,
+                        tickers=tickers,
+                        current_ticker=current_ticker,
+                        resume_ticker_index=resume_ticker_index,
+                        resume_offset=resume_offset,
+                        tickers_completed=tickers_completed,
+                        reports_target=reports_target,
+                        reports_done=reports_done,
+                        ok=ok,
+                        skip=skip,
+                        fail=fail,
+                        uploaded_keys=uploaded_keys,
+                        elapsed=time.monotonic() - started,
+                        snap=snap,
+                        burned=True,
+                        complete=False,
+                    ),
+                )
                 break
 
         if burned:
@@ -198,40 +287,53 @@ def main() -> int:
         tickers_completed = idx + 1
         resume_ticker_index = tickers_completed
         resume_offset = 0
+        snap = burn.snapshot()
+        upload_progress(
+            args.progress_s3_uri,
+            build_payload(
+                args=args,
+                tickers=tickers,
+                current_ticker=current_ticker,
+                resume_ticker_index=resume_ticker_index,
+                resume_offset=resume_offset,
+                tickers_completed=tickers_completed,
+                reports_target=reports_target,
+                reports_done=reports_done,
+                ok=ok,
+                skip=skip,
+                fail=fail,
+                uploaded_keys=uploaded_keys,
+                elapsed=time.monotonic() - started,
+                snap=snap,
+                burned=False,
+                complete=False,
+            ),
+        )
 
     elapsed = time.monotonic() - started
     snap = burn.snapshot()
     complete = (not burned) and tickers_completed >= len(tickers)
 
-    payload: dict[str, object] = {
-        "worker_id": args.worker_id,
-        "run_id": args.run_id or None,
-        "rotation": args.rotation,
-        "ticker_index": resume_ticker_index,
-        "start_offset": resume_offset,
-        "current_ticker": current_ticker,
-        "tickers_total": len(tickers),
-        "tickers_done": tickers_completed,
-        "reports_target": reports_target,
-        "reports_done": reports_done,
-        "uploaded": ok,
-        "skipped_existing": skip,
-        "failed": fail,
-        "annual_filter": args.annual_filter,
-        "uploaded_keys": uploaded_keys[-20:],
-        "uploaded_keys_count": len(uploaded_keys),
-        "elapsed_s": round(elapsed, 1),
-        "requests": snap["requests"],
-        "success": snap["success"],
-        "429": snap["429"],
-        "503": snap["503"],
-        "other_errors": snap["other_errors"],
-        "error_pct": snap["error_pct"],
-        "burned": bool(snap["burned"]),
-        "complete": complete,
-        "bucket": args.bucket,
-    }
+    payload = build_payload(
+        args=args,
+        tickers=tickers,
+        current_ticker=current_ticker,
+        resume_ticker_index=resume_ticker_index,
+        resume_offset=resume_offset,
+        tickers_completed=tickers_completed,
+        reports_target=reports_target,
+        reports_done=reports_done,
+        ok=ok,
+        skip=skip,
+        fail=fail,
+        uploaded_keys=uploaded_keys,
+        elapsed=elapsed,
+        snap=snap,
+        burned=bool(snap["burned"]),
+        complete=complete,
+    )
     fetch.write_result(args.result_json, payload)
+    upload_progress(args.progress_s3_uri, payload)
     if args.result_json:
         print(f"result_json: {args.result_json}")
 
