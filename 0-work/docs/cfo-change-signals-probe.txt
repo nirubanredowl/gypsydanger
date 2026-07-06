@@ -1,0 +1,72 @@
+CFO change signal probe
+Tickers: 1838  Rows: 1,260,035  Matches: 2,159
+
+Tier counts:
+  Tier A: 2,133
+  Tier B: 26
+
+Signal breakdown:
+   1599  cfo_headline+admin_other
+    554  cfo_headline+typed_exec_tag
+      6  cfo_headline+other_tags
+
+announcementTypes on any CFO-ish headline (top 15):
+   2112  Company Administration - Other
+    451  Company Secretary Appointment/Resignation
+    107  Director Appointment/Resignation
+     50  Periodic Reports - Other
+     42  Open Briefing
+     39  Half Yearly Report
+     33  Preliminary Final Report
+     22  Chairman's Address to Shareholders
+     20  Company Presentation
+     18  Details of Registered office address
+     18  Progress Report - Other
+     15  Progress Report
+     12  Web Cast
+     11  Notification of Results/Reporting Date
+     10  Profit Guidance
+
+Typed executive tags (all rows, top 10):
+  20623  Director Appointment/Resignation
+   5292  Company Secretary Appointment/Resignation
+   1183  Chair Appointment/Resignation
+    835  CEO/Managing Director - Appointment Resignation
+    272  Chairman Appointment/Resignation
+
+Samples tier A:
+  360 2020-05-11 | Appointment of CFO | ['Company Administration - Other']
+  360 2020-02-03 | Departure of CFO | ['Company Administration - Other']
+  3DA 2025-06-29 | Appointment of Chief Financial Officer | ['Company Administration - Other']
+  3DA 2025-04-03 | Resignation of Chief Financial Officer | ['Company Administration - Other']
+  3PL 2026-06-22 | Change to Chief Financial Officer and Senior Leadership Team | ['Company Administration - Other']
+
+Samples tier B:
+  ABB 2025-10-22 | Resignation of CFO | ['Company Presentation']
+  ABV 2018-05-14 | Passing of CFO and Company Secretary | ['Company Secretary Appointment/Resignation', 'Company Administration - Other']
+  AEL 2016-11-29 | Chief Financial Officer | ['Company Secretary Appointment/Resignation', 'Company Administration - Other']
+  ATM 2013-06-30 | ANTAMs Finance Director Named 2013 Indonesian Best Chief F | ['Other']
+  AVW 2017-10-10 | CFO Update | ['Company Secretary Appointment/Resignation', 'Company Administration - Other']
+
+## Recommended fetch signals for CFO change detection
+
+### Tier A — primary (headline + change verb + CFO role)
+- **~2,133 rows** — headlines explicitly about CFO appointment/resignation/change.
+- Dominant tag: `Company Administration - Other` (~67% of all CFO headlines); typed tags are sparse.
+- **Fetch filter:** headline regex (CFO role + change verb); do not rely on `announcementTypes` alone.
+
+### Tier B — secondary (typed executive tags + CFO in headline)
+- **~26 rows** — `Director Appointment/Resignation`, `Company Secretary Appointment/Resignation`, etc.
+- Catches ~107 rows tagged `Director Appointment/Resignation` with CFO in headline.
+
+### Not useful for CFO *changes* (context / noise)
+- `Change of Director's Interest Notice` (~102k) — securities holdings, not role changes.
+- `Full/Half Year Directors' Report` — may list KMP in PDF body; event date ≠ change date.
+- No dedicated `CFO Appointment/Resignation` Markit tag exists (unlike CEO/Managing Director).
+
+### Other report types worth parsing for CFO mentions (body text, not headline)
+- Annual report (`Annual Report` loose) — KMP section, remuneration report.
+- `Appendix 4G` (~14k) — corporate governance statements.
+- `Open Briefing` / `Company Presentation` — occasional leadership slides.
+
+**Total classified CFO-change candidates:** 2,159 / 1,260,035 announcements (0.17%)
