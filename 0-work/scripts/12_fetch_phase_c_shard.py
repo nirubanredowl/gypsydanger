@@ -233,8 +233,11 @@ def main() -> int:
             url = asx.cdn_pdf_url(document_key)
             try:
                 content = client.get_bytes(url, use_cache=not args.no_cache)
-                if len(content) < asx.MIN_PDF_BYTES:
-                    raise ValueError(f"download too small ({len(content)} bytes)")
+                if not asx.is_valid_pdf(content):
+                    raise ValueError(
+                        f"download not a valid PDF ({len(content)} bytes, "
+                        f"head={content[:8]!r})"
+                    )
                 fetch.s3_upload_bytes(args.bucket, s3_key, content)
                 ok += 1
                 uploaded_keys.append(s3_key)

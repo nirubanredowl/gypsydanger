@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Index complete (~1,838 tickers, ~1.26M announcement rows). **Phase C running** (`20260706T033644Z-fetch`): 20 EC2 workers fetching **22,573 loose annual reports** to S3 (`entities/{TICKER}/annual_reports/{YYYY}_{documentKey}.pdf`). Preflight PASS. Ladder fleet size: 20 workers (~17,870 docs/hr baseline).
+**Current state:** **Phase C complete** (`20260706T033644Z-fetch`): 22,516 uploaded + 10 skipped during run; **44/47 retries recovered** (3 permanently missing on CDN: SIX, CCR, REZ). **22,560 / 22,573** loose annual reports in S3 (~99.94%). Validation fixed: `is_valid_pdf()` accepts small real PDFs (<50KB).
 
-**Next action:** Monitor via `progress_email.sh` or `manifests/fetch_progress.json`. SNS milestones on soak-01 (10%, daily, stall alerts). Completion email when all workers finish.
+**Next action:** Stage 3 parse design, or manual review of 3 unavailable CDN documentKeys.
 
 **Constraints**
 

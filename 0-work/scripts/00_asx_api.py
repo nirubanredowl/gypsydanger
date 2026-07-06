@@ -45,6 +45,12 @@ ANNOUNCEMENT_COLUMNS = [
 ]
 
 MIN_PDF_BYTES = 50 * 1024
+MIN_PDF_MAGIC_BYTES = 1024
+
+
+def is_valid_pdf(content: bytes) -> bool:
+    """Accept real PDFs even when smaller than MIN_PDF_BYTES."""
+    return len(content) >= MIN_PDF_MAGIC_BYTES and content.startswith(b"%PDF")
 
 # Co-tags commonly present on ASX annual report filings (Appendix 4E bundle).
 FULL_YEAR_ANNOUNCEMENT_TYPES = frozenset(

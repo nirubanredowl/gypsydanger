@@ -173,7 +173,7 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Exit:** 0 (orchestrator); waiter FAIL
 - **Result:** Worker 00 (CBA) uploaded 5 PDFs. Worker 01 (QGL) simulated burn but rotation failed — waiter ran on soak-01 via SSM; soak IAM lacked `ec2:RunInstances`/`TerminateInstances`. Summary: `passed: false`, `worker_results: 1`.
 
-## 2026-07-06 03:36 — Phase C full fetch started
-- **Command:** `run_phase_c_fetch.sh --async`
-- **Exit:** 0 (orchestrator)
-- **Result:** Run `20260706T033644Z-fetch`. 20 EC2 workers launched; 22,573 loose annual reports across 1,793 tickers (balanced shards). Local tmux waiter `phase-c-waiter-20260706T033644Z-fetch`. Progress: `s3://gypsy-danger-asx-691811257790/manifests/fetch_progress.json`. ETA ~1.5h at ladder baseline (~17,870 docs/hr).
+## 2026-07-06 07:50 — Phase C failed PDF retry
+- **Command:** `13_retry_failed_annual_reports.py --from-logs-dir /tmp/phase-c-logs`
+- **Exit:** 1 (3 permanent CDN misses)
+- **Result:** 44/47 recovered and uploaded. Root cause: 39 valid PDFs rejected by 50KB `MIN_PDF_BYTES` threshold; 4 transient CDN errors (IncompleteRead/timeout); 3 permanently unavailable (CDN returns `[]`). Fixed validation → `is_valid_pdf()` (%PDF + ≥1KB). Permanent fails: SIX, CCR, REZ. Manifest: `manifests/fetch/20260706T033644Z-fetch/retry_summary.json`.
