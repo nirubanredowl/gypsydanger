@@ -167,3 +167,13 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `tmux: run_preflight_autostart.sh`
 - **Exit:** pending
 - **Result:** Cloud agent missing AWS keys. Autostart waiting on `aws login --remote` or credentials in `.env`. On auth success → `run_preflight_fetch.sh --async` (loose annual reports). Log: `0-work/scripts/preflight-run.log`.
+
+## 2026-07-06 02:53 — preflight run 20260706T025349Z-preflight (FAIL)
+- **Command:** `run_preflight_fetch.sh --async`
+- **Exit:** 0 (orchestrator); waiter FAIL
+- **Result:** Worker 00 (CBA) uploaded 5 PDFs. Worker 01 (QGL) simulated burn but rotation failed — waiter ran on soak-01 via SSM; soak IAM lacked `ec2:RunInstances`/`TerminateInstances`. Summary: `passed: false`, `worker_results: 1`.
+
+## 2026-07-06 03:26 — preflight retry 20260706T032641Z-preflight (PASS)
+- **Command:** `run_preflight_fetch.sh --async` + local `preflight_wait_and_notify.sh` (tmux)
+- **Exit:** 0
+- **Result:** Worker 00 skipped 5 existing CBA PDFs. Worker 01 burned after 2 uploads; replacement EC2 launched (`i-0168ba52498518c8c`), resumed at offset 4, uploaded final QGL PDF. Summary `passed: true`, 1 burn event, 1 rotation. SNS PASS email sent. Manifest: `s3://gypsy-danger-asx-691811257790/manifests/preflight/20260706T032641Z-preflight/summary.json`.

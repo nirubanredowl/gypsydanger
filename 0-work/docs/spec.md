@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** Index complete (~1,838 tickers, ~1.26M announcement rows). Annual report filter validated — **22,128 strict annual report PDFs** vs full corpus. Ladder complete through rung 4 (20 workers, ~17,870 docs/hr aggregate). Phase C fetch blocked pending legal review.
+**Current state:** Index complete (~1,838 tickers, ~1.26M announcement rows). Annual report filter validated — **22,128 strict annual report PDFs** vs full corpus. Ladder complete through rung 4 (20 workers, ~17,870 docs/hr aggregate). **Preflight PASS** (`20260706T032641Z-preflight`): loose filter, S3 layout, simulated burn+EC2 rotation, SNS email all verified. Phase C full fetch blocked pending legal review.
 
-**Next action:** Run preflight (`aws/run_preflight_fetch.sh --async`) after legal clearance → Phase C full fetch.
+**Next action:** After legal clearance → Phase C full fetch (~22.6k loose annual reports to S3).
 
 **Constraints**
 
