@@ -40,7 +40,7 @@ def main() -> int:
     code_path = Path(args.code_file)
 
     proc = subprocess.Popen(
-        ["aws", "login", "--remote", "--region", "ap-southeast-2", "--no-cli-pager"],
+        ["stdbuf", "-oL", "aws", "login", "--remote", "--region", "ap-southeast-2", "--no-cli-pager"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
