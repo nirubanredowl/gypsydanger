@@ -66,10 +66,11 @@ Mirror the local `data/` tree:
 s3://gypsy-danger-asx/          # bucket name TBD at deploy
   entities.csv
   entities/{TICKER}/{TICKER}_Announcements.csv
-  entities/{TICKER}/raw/{documentKey}.pdf
+  entities/{TICKER}/annual_reports/{YYYY}_{documentKey}.pdf
   logs/fetch/{worker_id}/{run_id}.jsonl
   manifests/completed_tickers.txt
   manifests/failed_tickers.json
+  manifests/preflight/{run_id}/summary.json
 ```
 
 **Index upload (once, before workers):**
@@ -262,6 +263,8 @@ Create `0-work/docs/soak_test_results.md`:
 ## Execution phases
 
 Run **[Soak test design](#soak-test-design)** and **[Scaling ladder](#scaling-ladder)** before Phase A.
+
+**Preflight (before Phase C):** [`preflight-fetch.md`](preflight-fetch.md) — 2-worker end-to-end test of loose annual reports → S3, burn rotation, SNS email.
 
 **Execution detail (scripts, async email, rung commands):** [`scaling-ladder-execution.md`](scaling-ladder-execution.md)
 

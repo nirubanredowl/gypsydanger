@@ -157,3 +157,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** (code change — `CdnBurnTracker`, `launch_ladder_worker.sh`, waiter rotation)
 - **Exit:** —
 - **Result:** Workers exit code 2 when CDN IP burned (429/503 thresholds). `ladder_wait_and_notify.sh` terminates burned EC2 and relaunches with new public IP (max 3 rotations/slot). `03_fetch_documents.py` default `--annual-filter loose` when `--annual-reports-only` is set.
+
+## 2026-07-06 — preflight fetch pipeline
+- **Command:** (code) `11_fetch_annual_reports_s3.py`, `aws/run_preflight_fetch.sh`
+- **Exit:** —
+- **Result:** Preflight orchestrator: 2 EC2 workers (CBA+QGL, 5 loose annual reports each), S3 path `entities/{TICKER}/annual_reports/{YYYY}_{documentKey}.pdf`, simulated burn+rotate on worker 01, SNS summary. Run with `run_preflight_fetch.sh --async`. No PDF renamer script — naming via `s3_annual_report_key()`.

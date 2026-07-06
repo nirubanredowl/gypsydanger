@@ -129,8 +129,35 @@ def announcements_csv_path(ticker: str) -> Path:
 
 
 def raw_pdf_path(ticker: str, document_key: str) -> Path:
-    safe_key = document_key.replace("/", "_")
+    safe_key = safe_document_key(document_key)
     return entity_dir(ticker) / "raw" / f"{safe_key}.pdf"
+
+
+def safe_document_key(document_key: str) -> str:
+    """Filesystem-safe form of a Markit documentKey (slashes → underscores)."""
+    return document_key.replace("/", "_")
+
+
+def annual_report_year(date_str: str) -> str:
+    """Extract YYYY from an ISO announcement date."""
+    return (date_str or "")[:4] or "unknown"
+
+
+def annual_report_pdf_basename(date_str: str, document_key: str) -> str:
+    """Standard annual report PDF filename: {YYYY}_{documentKey}.pdf"""
+    return f"{annual_report_year(date_str)}_{safe_document_key(document_key)}.pdf"
+
+
+def local_annual_report_path(ticker: str, date_str: str, document_key: str) -> Path:
+    return entity_dir(ticker) / "annual_reports" / annual_report_pdf_basename(
+        date_str, document_key
+    )
+
+
+def s3_annual_report_key(ticker: str, date_str: str, document_key: str) -> str:
+    """S3 object key for an annual report PDF."""
+    name = annual_report_pdf_basename(date_str, document_key)
+    return f"entities/{ticker.upper()}/annual_reports/{name}"
 
 
 def cdn_pdf_url(document_key: str) -> str:
@@ -463,11 +490,14 @@ class CdnBurnTracker:
         burn_error_pct: float = 1.0,
         consecutive_429_limit: int = 5,
         min_requests: int = 20,
+        simulate_burn_after: int | None = None,
     ) -> None:
         self.window_size = window_size
         self.burn_error_pct = burn_error_pct
         self.consecutive_429_limit = consecutive_429_limit
         self.min_requests = min_requests
+        self.simulate_burn_after = simulate_burn_after
+        self._simulated_burn = False
         self._window: list[str] = []
         self._consecutive_429 = 0
         self.total_requests = 0
@@ -483,6 +513,12 @@ class CdnBurnTracker:
         self.counts["success"] += 1
         self._consecutive_429 = 0
         self._push("ok")
+        if (
+            self.simulate_burn_after is not None
+            and self.counts["success"] >= self.simulate_burn_after
+        ):
+            self._simulated_burn = True
+            return True
         return self.is_burned()
 
     def record_error(self, status: int | None) -> bool:
@@ -507,6 +543,8 @@ class CdnBurnTracker:
             self._window.pop(0)
 
     def is_burned(self) -> bool:
+        if self._simulated_burn:
+            return True
         if self._consecutive_429 >= self.consecutive_429_limit:
             return True
         if self.total_requests < self.min_requests:
@@ -526,6 +564,7 @@ class CdnBurnTracker:
             "requests": self.total_requests,
             "error_pct": round(err_pct, 2),
             "burned": self.is_burned(),
+            "simulated_burn": self._simulated_burn,
             "consecutive_429": self._consecutive_429,
         }
 
