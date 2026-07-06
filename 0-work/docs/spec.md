@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Phase C complete** (`20260706T033644Z-fetch`): 22,516 uploaded + 10 skipped during run; **44/47 retries recovered** (3 permanently missing on CDN: SIX, CCR, REZ). **22,560 / 22,573** loose annual reports in S3 (~99.94%). Validation fixed: `is_valid_pdf()` accepts small real PDFs (<50KB).
+**Current state:** **Phase C complete** (~22,560 loose annual reports in S3). **Stage 3 parse** in design — see [`0-work/docs/parse-spec.md`](parse-spec.md). LlamaIndex: Parse A (raw text/tables) + Parse B (structured financial tables, schema TBD).
 
-**Next action:** Stage 3 parse design, or manual review of 3 unavailable CDN documentKeys.
+**Next action:** Review sample PDFs (links via `14_parse_sample_links.py`) → lock Parse B table schema → pilot Parse A on ~10 tickers.
 
 **Constraints**
 
