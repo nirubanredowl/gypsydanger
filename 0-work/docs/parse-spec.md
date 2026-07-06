@@ -153,4 +153,5 @@ Local mirror (optional): `data/parsed/…` for pilot tickers only.
 
 - [LlamaIndex — PDF parsing](https://docs.llamaindex.ai/en/stable/module_guides/loading/documents_and_nodes/usage_documents/)
 - [LlamaParse](https://docs.llamaindex.ai/en/stable/llama_cloud/llama_parse/)
+- [open-parse experiment](../experiments/open-parse/) — sample parse run on 8 PDFs
 - Project fetch summary: `s3://gypsy-danger-asx-691811257790/manifests/fetch/20260706T033644Z-fetch/summary.json`

@@ -1,0 +1,3 @@
+# Large PDF inputs and parse outputs (regenerate locally)
+pdfs/
+output/*.json

@@ -1,0 +1,26 @@
+Parsing CDM_2013.pdf ...
+The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/CDM_2013.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=1893 tables=0 chars=99453 time=1.8s
+Parsing A1N_2019.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/A1N_2019.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=3712 tables=0 chars=308075 time=5.0s
+Parsing MCP_2018.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/MCP_2018.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=5412 tables=0 chars=285116 time=8.0s
+Parsing ALK_2016.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/ALK_2016.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=4272 tables=0 chars=240734 time=9.0s
+Parsing UNT_2021.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/UNT_2021.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=3430 tables=0 chars=228415 time=5.7s
+Parsing HFR_2020.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/HFR_2020.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=6069 tables=0 chars=292342 time=17.5s
+Parsing GRR_2021.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/GRR_2021.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=3233 tables=0 chars=246239 time=4.6s
+Parsing GMG_2022.pdf ...
+WARNING:pdfminer.pdfpage:The PDF <_io.BufferedReader name='/workspace/0-work/experiments/open-parse/pdfs/GMG_2022.pdf'> contains a metadata field indicating that it should not allow text extraction. Ignoring this field and proceeding. Use the check_extractable if you want to raise an error in this case
+  OK nodes=17301 tables=0 chars=836560 time=21.1s
+
+Wrote /workspace/0-work/experiments/open-parse/output/summary.json
