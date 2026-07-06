@@ -113,6 +113,20 @@ ROLE_POLICY="$(cat <<EOF
         "ssmmessages:OpenDataChannel"
       ],
       "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:CreateTags"
+      ],
+      "Resource": "*"
     }
   ]
 }

@@ -5,18 +5,32 @@ set -euo pipefail
 RUN_ID="${1:?run id}"
 WORKERS="${2:?worker count}"
 
-source /etc/profile.d/gypsy-danger.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f /etc/profile.d/gypsy-danger.sh ]]; then
+  source /etc/profile.d/gypsy-danger.sh
+else
+  ENV_FILE="${SCRIPT_DIR}/../.env"
+  if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$ENV_FILE"
+    set +a
+  fi
+fi
 export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-ap-southeast-2}"
+export AWS_PAGER=""
+export AWS_CLI_PAGER=""
 
 BUCKET="${GYPSY_S3_BUCKET:?GYPSY_S3_BUCKET required}"
 MAX_ROTATIONS="${GYPSY_BURN_MAX_ROTATIONS:-3}"
 PREFIX="logs/preflight/${RUN_ID}/"
-ROOT="/opt/gypsy-danger"
-LAUNCH="${ROOT}/launch_preflight_worker.sh"
-
-mkdir -p "$ROOT"
-aws s3 cp "s3://${BUCKET}/scripts/launch_preflight_worker.sh" "$LAUNCH"
-chmod +x "$LAUNCH"
+LAUNCH="${SCRIPT_DIR}/launch_preflight_worker.sh"
+if [[ ! -x "$LAUNCH" ]]; then
+  ROOT="/opt/gypsy-danger"
+  mkdir -p "$ROOT"
+  aws s3 cp "s3://${BUCKET}/scripts/launch_preflight_worker.sh" "$LAUNCH"
+  chmod +x "$LAUNCH"
+fi
 
 WAIT_MAX_S=1800
 DEADLINE=$(( $(date +%s) + WAIT_MAX_S ))
@@ -84,11 +98,17 @@ PY
   simulate="$(python3 -c "import json; print(json.load(open('/tmp/preflight_rotate_${wid}.json'))['simulate_burn_after'])")"
 
   echo "  rotate worker_${wid} (${ticker}): terminate ${old_id}, resume offset=${next_offset} rotation=${next_rotation}"
+  aws s3 cp "$result" "s3://${BUCKET}/${PREFIX}worker_${wid}_burned.json" || true
+  NEW_IID="$("$LAUNCH" "$RUN_ID" "$((10#$wid))" "$ticker" "$remaining" "$next_offset" "$next_rotation" "0")"
+  if [[ -z "$NEW_IID" || "$NEW_IID" == "None" ]]; then
+    echo "  ERROR: failed to launch replacement worker for ${wid}"
+    return 1
+  fi
+  echo "  replacement worker_${wid}: ${NEW_IID}"
   if [[ -n "$old_id" && "$old_id" != "None" ]]; then
-    aws ec2 terminate-instances --instance-ids "$old_id" >/dev/null || true
+    aws ec2 terminate-instances --instance-ids "$old_id" >/dev/null
   fi
   aws s3 rm "s3://${BUCKET}/${PREFIX}worker_${wid}.json" || true
-  "$LAUNCH" "$RUN_ID" "$((10#$wid))" "$ticker" "$remaining" "$next_offset" "$next_rotation" "0" >"/tmp/preflight_new_${wid}.id"
 }
 
 while [[ $(date +%s) -lt $DEADLINE ]]; do
@@ -118,14 +138,16 @@ from pathlib import Path
 tmp = Path("${TMPDIR}")
 rows = []
 for f in sorted(tmp.glob("worker_*.json")):
-    if f.name.endswith("_meta.json"):
+    if "_meta.json" in f.name or "_burned.json" in f.name:
         continue
     rows.append(json.loads(f.read_text()))
+
+burned_archives = list(tmp.glob("worker_*_burned.json"))
 
 uploaded = sum(int(r.get("uploaded", 0)) for r in rows)
 skipped = sum(int(r.get("skipped_existing", 0)) for r in rows)
 failed = sum(int(r.get("failed", 0)) for r in rows)
-burned = sum(1 for r in rows if r.get("burned"))
+burned = sum(1 for r in rows if r.get("burned")) + len(burned_archives)
 rotations = sum(int(r.get("rotation", 0)) for r in rows)
 keys = []
 for r in rows:

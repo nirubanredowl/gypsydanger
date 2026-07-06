@@ -40,10 +40,10 @@ EOF
 done
 
 BUCKET="${GYPSY_S3_BUCKET:?set GYPSY_S3_BUCKET in .env}"
-SOAK_ID="${GYPSY_SOAK_INSTANCE_ID:-i-0812f82dd21298e96}"
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-preflight"
 WORKERS=2
 LAUNCH="$ROOT/0-work/scripts/aws/launch_preflight_worker.sh"
+WAITER="$ROOT/0-work/scripts/aws/preflight_wait_and_notify.sh"
 
 echo "==> Preflight run ${RUN_ID}"
 echo "    Bucket: s3://${BUCKET}"
@@ -58,7 +58,7 @@ for T in CBA QGL; do
     aws s3 cp "$ROOT/data/entities/${T}/${T}_Announcements.csv" "s3://${BUCKET}/entities/${T}/${T}_Announcements.csv"
 done
 
-chmod +x "$LAUNCH" "$ROOT/0-work/scripts/aws/preflight_wait_and_notify.sh"
+chmod +x "$LAUNCH" "$WAITER"
 
 echo "==> Launching ${WORKERS} preflight workers..."
 W0="$("$LAUNCH" "$RUN_ID" 0 CBA 5 0 0 0)"
@@ -66,24 +66,21 @@ echo "  worker 00 (CBA): $W0"
 W1="$("$LAUNCH" "$RUN_ID" 1 QGL 5 0 0 2)"
 echo "  worker 01 (QGL, simulate burn after 2): $W1"
 
-WAITER_B64="$(base64 -w0 < "$ROOT/0-work/scripts/aws/preflight_wait_and_notify.sh")"
-WAITER_CMD="echo ${WAITER_B64} | base64 -d > /tmp/preflight_wait.sh && chmod +x /tmp/preflight_wait.sh && /tmp/preflight_wait.sh ${RUN_ID} ${WORKERS}"
-WAIT_CMD_ID="$(aws ssm send-command \
-  --instance-ids "$SOAK_ID" \
-  --document-name AWS-RunShellScript \
-  --timeout-seconds 1800 \
-  --parameters "commands=[\"${WAITER_CMD}\"]" \
-  --query Command.CommandId \
-  --no-cli-pager \
-  --output text)"
+echo "==> Starting local waiter (uses your AWS creds for EC2 rotation)..."
+SESSION_NAME="preflight-waiter-${RUN_ID}"
+tmux -f /exec-daemon/tmux.portal.conf kill-session -t "$SESSION_NAME" 2>/dev/null || true
+tmux -f /exec-daemon/tmux.portal.conf new-session -d -s "$SESSION_NAME" -c "$ROOT" -- "${SHELL:-zsh}" -l
+tmux -f /exec-daemon/tmux.portal.conf send-keys -t "$SESSION_NAME:0.0" \
+  "export PATH=\"/usr/local/bin:/home/ubuntu/.local/bin:\$PATH\"; set -a && source \"$ENV_FILE\" && set +a; \"$WAITER\" \"$RUN_ID\" \"$WORKERS\" 2>&1 | tee -a \"$ROOT/0-work/scripts/preflight-waiter.log\"" C-m
 
 echo
 echo "=== Preflight started ==="
 echo "Run ID:      ${RUN_ID}"
 echo "Workers:     ${W0} ${W1}"
-echo "Waiter SSM:  ${WAIT_CMD_ID} on ${SOAK_ID}"
+echo "Waiter:      local tmux session ${SESSION_NAME} (not soak-01 — needs EC2 perms)"
 echo "Results:     s3://${BUCKET}/logs/preflight/${RUN_ID}/"
 echo "Summary:     s3://${BUCKET}/manifests/preflight/${RUN_ID}/summary.json"
+echo "Waiter log:  0-work/scripts/preflight-waiter.log"
 if [[ -n "${GYPSY_SNS_TOPIC_ARN:-}" ]]; then
   echo "Notify:      SNS email when preflight completes"
 else
@@ -96,22 +93,11 @@ if [[ "$ASYNC" -eq 1 ]]; then
   exit 0
 fi
 
-echo "Sync mode — polling waiter..."
+echo "Sync mode — tailing waiter log..."
 for _ in $(seq 1 360); do
-  STATUS="$(aws ssm get-command-invocation \
-    --command-id "$WAIT_CMD_ID" \
-    --instance-id "$SOAK_ID" \
-    --no-cli-pager \
-    --query Status --output text 2>/dev/null || echo Pending)"
-  if [[ "$STATUS" == "Success" || "$STATUS" == "Failed" || "$STATUS" == "TimedOut" ]]; then
-    echo "Waiter: $STATUS"
+  if grep -q "SNS notification sent" "$ROOT/0-work/scripts/preflight-waiter.log" 2>/dev/null; then
+    tail -40 "$ROOT/0-work/scripts/preflight-waiter.log"
     break
   fi
   sleep 5
 done
-aws ssm get-command-invocation \
-  --command-id "$WAIT_CMD_ID" \
-  --instance-id "$SOAK_ID" \
-  --no-cli-pager \
-  --query StandardOutputContent \
-  --output text
