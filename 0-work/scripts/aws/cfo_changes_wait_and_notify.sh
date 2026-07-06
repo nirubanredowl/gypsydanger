@@ -43,15 +43,22 @@ worker_done() {
   aws s3 cp "s3://${BUCKET}/${PREFIX}worker_${wid}.json" "/tmp/fetch_${wid}.json" 2>/dev/null || return 1
   python3 - <<PY
 import json
+import sys
 from pathlib import Path
+
 row = json.loads(Path("/tmp/fetch_${wid}.json").read_text())
-print("yes" if row.get("complete") else "no")
+if row.get("complete"):
+    print("yes")
+    sys.exit(0)
+print("no")
+sys.exit(1)
 PY
 }
 
 update_progress_manifest() {
   TMPDIR="$(mktemp -d)"
-  aws s3 sync "s3://${BUCKET}/${PREFIX}" "$TMPDIR/" --exclude '*' --include 'worker_*.json' --only-show-errors
+  aws s3 sync "s3://${BUCKET}/${PREFIX}" "$TMPDIR/" \
+    --exclude '*' --include 'worker_*_progress.json' --include 'worker_*.json' --only-show-errors
   python3 - <<PY
 import json
 import os
@@ -60,11 +67,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 tmp = Path("${TMPDIR}")
-rows = []
+rows_by_worker: dict[str, dict] = {}
+for f in sorted(tmp.glob("worker_*_progress.json")):
+    wid = f.name.removeprefix("worker_").removesuffix("_progress.json")
+    rows_by_worker[wid] = json.loads(f.read_text())
 for f in sorted(tmp.glob("worker_*.json")):
-    if "_meta.json" in f.name or "_burned.json" in f.name:
+    if "_meta.json" in f.name or "_burned.json" in f.name or "_progress.json" in f.name:
         continue
-    rows.append(json.loads(f.read_text()))
+    wid = f.name.removeprefix("worker_").removesuffix(".json")
+    rows_by_worker[wid] = json.loads(f.read_text())
+rows = list(rows_by_worker.values())
 
 uploaded = sum(int(r.get("uploaded", 0)) for r in rows)
 skipped = sum(int(r.get("skipped_existing", 0)) for r in rows)
@@ -128,7 +140,9 @@ PY
 maybe_rotate_burned() {
   local wid=$1
   local result="/tmp/fetch_${wid}.json"
-  aws s3 cp "s3://${BUCKET}/${PREFIX}worker_${wid}.json" "$result" 2>/dev/null || return 0
+  if ! aws s3 cp "s3://${BUCKET}/${PREFIX}worker_${wid}.json" "$result" 2>/dev/null; then
+    aws s3 cp "s3://${BUCKET}/${PREFIX}worker_${wid}_progress.json" "$result" 2>/dev/null || return 0
+  fi
   python3 - <<PY || return 0
 import json
 from pathlib import Path
@@ -184,6 +198,7 @@ PY
     aws ec2 terminate-instances --instance-ids "$old_id" >/dev/null
   fi
   aws s3 rm "s3://${BUCKET}/${PREFIX}worker_${wid}.json" || true
+  aws s3 rm "s3://${BUCKET}/${PREFIX}worker_${wid}_progress.json" || true
 }
 
 while [[ $(date +%s) -lt $DEADLINE ]]; do

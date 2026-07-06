@@ -79,7 +79,7 @@ python3 18_fetch_cfo_changes_shard.py \\
   ${TIER_B_FLAG} \\
   --rate-limit-s ${RATE_LIMIT_S} \\
   --no-cache \\
-  --progress-s3-uri s3://${BUCKET}/${LOG_PREFIX}/worker_${shard_id}.json \\
+  --progress-s3-uri s3://${BUCKET}/${LOG_PREFIX}/worker_${shard_id}_progress.json \\
   --result-json /tmp/result.json \\
   2>&1 | tee /tmp/fetch.log
 EXIT=\$?

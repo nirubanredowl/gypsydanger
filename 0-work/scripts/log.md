@@ -186,4 +186,9 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 ## 2026-07-06 — CFO change fetch launch
 - **Command:** `aws/run_cfo_changes_fetch.sh --async`
 - **Exit:** 0
-- **Result:** Run `20260706T223406Z-cfo-fetch`; 10 EC2 workers; 2,133 tier-A targets; waiter tmux `cfo-fetch-waiter-20260706T223406Z-cfo-fetch`; progress `manifests/cfo_fetch_progress.json`.
+- **Result:** Run `20260706T223406Z-cfo-fetch`; 10 EC2 workers; 2,133 tier-A targets; waiter tmux `cfo-fetch-waiter-20260706T223406Z-cfo-fetch`; progress `manifests/cfo_fetch_progress.json`. **Early stop:** waiter counted interim progress JSON as complete (~821/2133 uploaded); fixed `worker_done` + separate `_progress.json` key.
+
+## 2026-07-06 — CFO change fetch resume
+- **Command:** `aws/run_cfo_changes_fetch.sh --async` (after waiter fix)
+- **Exit:** pending
+- **Result:** (updated after launch)
