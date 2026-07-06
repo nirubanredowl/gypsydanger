@@ -1,0 +1,128 @@
+{
+  "workers": 20,
+  "annual_filter": "loose",
+  "tickers_with_reports": 1793,
+  "total_reports": 22573,
+  "shards": [
+    {
+      "worker_id": "00",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_00.txt"
+    },
+    {
+      "worker_id": "01",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_01.txt"
+    },
+    {
+      "worker_id": "02",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_02.txt"
+    },
+    {
+      "worker_id": "03",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_03.txt"
+    },
+    {
+      "worker_id": "04",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_04.txt"
+    },
+    {
+      "worker_id": "05",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_05.txt"
+    },
+    {
+      "worker_id": "06",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_06.txt"
+    },
+    {
+      "worker_id": "07",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_07.txt"
+    },
+    {
+      "worker_id": "08",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_08.txt"
+    },
+    {
+      "worker_id": "09",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_09.txt"
+    },
+    {
+      "worker_id": "10",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_10.txt"
+    },
+    {
+      "worker_id": "11",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_11.txt"
+    },
+    {
+      "worker_id": "12",
+      "tickers": 90,
+      "reports": 1129,
+      "file": "shards/20workers/shard_12.txt"
+    },
+    {
+      "worker_id": "13",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_13.txt"
+    },
+    {
+      "worker_id": "14",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_14.txt"
+    },
+    {
+      "worker_id": "15",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_15.txt"
+    },
+    {
+      "worker_id": "16",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_16.txt"
+    },
+    {
+      "worker_id": "17",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_17.txt"
+    },
+    {
+      "worker_id": "18",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_18.txt"
+    },
+    {
+      "worker_id": "19",
+      "tickers": 89,
+      "reports": 1128,
+      "file": "shards/20workers/shard_19.txt"
+    }
+  ]
+}

@@ -11,7 +11,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_TOTAL_PDFS = 1_260_000
+DEFAULT_TOTAL_PDFS = 22_573
 DEFAULT_BASELINE_DOCS_HR = 17_870  # rung 4 aggregate
 
 
