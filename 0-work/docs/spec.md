@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Phase C complete** (~22,560 loose annual reports in S3). **Stage 3 parse** in design — see [`0-work/docs/parse-spec.md`](parse-spec.md). LlamaIndex: Parse A (raw text/tables) + Parse B (structured financial tables, schema TBD).
+**Current state:** **Phase C complete** (~22,560 loose annual reports in S3). **CFO change fetch** scripts ready — ~2,133 tier-A announcements; S3 path `entities/{TICKER}/cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf`. **Stage 3 parse** in design — see [`0-work/docs/parse-spec.md`](parse-spec.md).
 
-**Next action:** Review sample PDFs (links via `14_parse_sample_links.py`) → lock Parse B table schema → pilot Parse A on ~10 tickers.
+**Next action:** Run `aws/run_cfo_changes_fetch.sh --async` → then review sample PDFs (`14_parse_sample_links.py`) → lock Parse B table schema.
 
 **Constraints**
 

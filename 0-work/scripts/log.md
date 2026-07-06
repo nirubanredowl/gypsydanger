@@ -177,3 +177,13 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `13_retry_failed_annual_reports.py --from-logs-dir /tmp/phase-c-logs`
 - **Exit:** 1 (3 permanent CDN misses)
 - **Result:** 44/47 recovered and uploaded. Root cause: 39 valid PDFs rejected by 50KB `MIN_PDF_BYTES` threshold; 4 transient CDN errors (IncompleteRead/timeout); 3 permanently unavailable (CDN returns `[]`). Fixed validation → `is_valid_pdf()` (%PDF + ≥1KB). Permanent fails: SIX, CCR, REZ. Manifest: `manifests/fetch/20260706T033644Z-fetch/retry_summary.json`.
+
+## 2026-07-06 — CFO change fetch scripts
+- **Command:** (code) `16_fetch_cfo_changes_s3.py`, `17_build_cfo_change_shards.py`, `18_fetch_cfo_changes_shard.py`, `aws/run_cfo_changes_fetch.sh`
+- **Exit:** —
+- **Result:** Headline-filter fetch mirroring Phase C. S3 naming via `cfo_change_date()` → `{YYYY-MM-DD}_{documentKey}.pdf` under `entities/{TICKER}/cfo_changes/`. Shard build: 899 tickers, 2,133 tier-A docs / 10 workers. Test: ticker 360 uploaded 2 PDFs OK.
+
+## 2026-07-06 — CFO change fetch launch
+- **Command:** `aws/run_cfo_changes_fetch.sh --async`
+- **Exit:** pending
+- **Result:** (updated after launch)

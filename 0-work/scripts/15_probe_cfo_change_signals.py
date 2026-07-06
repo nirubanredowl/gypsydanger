@@ -134,70 +134,33 @@ def parse_types(raw: str) -> list[str]:
 
 
 def classify_row(ticker: str, row: dict[str, str]) -> Match | None:
+    tier = asx.cfo_change_tier(row)
+    if tier is None:
+        return None
     headline = (row.get("headline") or "").strip()
     types = parse_types(row.get("announcementTypes", ""))
-    type_set = set(types)
-    has_cfo = bool(CFO_ROLE.search(headline))
-    has_cfo_change = has_cfo and bool(CFO_CHANGE.search(headline))
-    typed_exec = type_set & TYPED_EXEC_TAGS
-
-    if has_cfo_change:
-        if typed_exec:
+    signal = "cfo_headline+admin_other"
+    if tier == "A":
+        type_set = set(types)
+        if type_set & TYPED_EXEC_TAGS:
             signal = "cfo_headline+typed_exec_tag"
-            tier = "A"
-        elif type_set == {GENERIC_ADMIN} or (
-            GENERIC_ADMIN in type_set and not typed_exec
-        ):
-            signal = "cfo_headline+admin_other"
-            tier = "A"
-        else:
+        elif type_set != {GENERIC_ADMIN} and GENERIC_ADMIN not in type_set:
             signal = "cfo_headline+other_tags"
-            tier = "B"
-        return Match(
-            ticker=ticker,
-            date=(row.get("date") or "")[:10],
-            headline=headline,
-            document_key=(row.get("documentKey") or "").strip(),
-            types=types,
-            tier=tier,
-            signal=signal,
-        )
-
-    if typed_exec and has_cfo:
-        return Match(
-            ticker=ticker,
-            date=(row.get("date") or "")[:10],
-            headline=headline,
-            document_key=(row.get("documentKey") or "").strip(),
-            types=types,
-            tier="B",
-            signal="cfo_headline+typed_exec_tag",
-        )
-
-    if typed_exec and CEO_ROLE.search(headline) and CFO_ROLE.search(headline):
-        return Match(
-            ticker=ticker,
-            date=(row.get("date") or "")[:10],
-            headline=headline,
-            document_key=(row.get("documentKey") or "").strip(),
-            types=types,
-            tier="B",
-            signal="ceo_and_cfo_headline+typed_exec",
-        )
-
-    # Company secretary changes sometimes reflect CFO dual-hat
-    if "Company Secretary Appointment/Resignation" in type_set and has_cfo:
-        return Match(
-            ticker=ticker,
-            date=(row.get("date") or "")[:10],
-            headline=headline,
-            document_key=(row.get("documentKey") or "").strip(),
-            types=types,
-            tier="B",
-            signal="cfo_headline+company_secretary_tag",
-        )
-
-    return None
+    elif "Company Secretary Appointment/Resignation" in types:
+        signal = "cfo_headline+company_secretary_tag"
+    elif TYPED_EXEC_TAGS & set(types):
+        signal = "cfo_headline+typed_exec_tag"
+    else:
+        signal = "cfo_headline+other_tags"
+    return Match(
+        ticker=ticker,
+        date=(row.get("date") or "")[:10],
+        headline=headline,
+        document_key=(row.get("documentKey") or "").strip(),
+        types=types,
+        tier=tier,
+        signal=signal,
+    )
 
 
 def scan_ticker(ticker: str, stats: ScanStats) -> None:

@@ -166,6 +166,101 @@ def s3_annual_report_key(ticker: str, date_str: str, document_key: str) -> str:
     return f"entities/{ticker.upper()}/annual_reports/{name}"
 
 
+CFO_ROLE_RE = re.compile(
+    r"\bCFO\b|chief financial officer|finance director|financial controller",
+    re.I,
+)
+CFO_CHANGE_RE = re.compile(
+    r"(?:appointment|appoint|resign|resignation|retire|retirement|departure|depart|"
+    r"change|transition|step(?:ping)? down|leav(?:e|ing)|joins?|named|announce(?:s|d)?)",
+    re.I,
+)
+CFO_TYPED_EXEC_TAGS = frozenset(
+    {
+        "Director Appointment/Resignation",
+        "Company Secretary Appointment/Resignation",
+        "CEO/Managing Director - Appointment Resignation",
+        "Chair Appointment/Resignation",
+        "Chairman Appointment/Resignation",
+    }
+)
+
+
+def cfo_change_date(date_str: str) -> str:
+    """Extract YYYY-MM-DD from an ISO announcement date."""
+    return (date_str or "")[:10] or "unknown"
+
+
+def cfo_change_pdf_basename(date_str: str, document_key: str) -> str:
+    """Standard CFO change PDF filename: {YYYY-MM-DD}_{documentKey}.pdf"""
+    return f"{cfo_change_date(date_str)}_{safe_document_key(document_key)}.pdf"
+
+
+def local_cfo_change_path(ticker: str, date_str: str, document_key: str) -> Path:
+    return entity_dir(ticker) / "cfo_changes" / cfo_change_pdf_basename(
+        date_str, document_key
+    )
+
+
+def s3_cfo_change_key(ticker: str, date_str: str, document_key: str) -> str:
+    """S3 object key for a CFO change announcement PDF."""
+    name = cfo_change_pdf_basename(date_str, document_key)
+    return f"entities/{ticker.upper()}/cfo_changes/{name}"
+
+
+def cfo_change_tier(row: dict[str, str]) -> str | None:
+    """Return tier ``A`` or ``B`` when row is a CFO change candidate, else None."""
+    headline = (row.get("headline") or "").strip()
+    types = parse_announcement_types(row.get("announcementTypes"))
+    type_set = set(types)
+    has_cfo = bool(CFO_ROLE_RE.search(headline))
+    has_cfo_change = has_cfo and bool(CFO_CHANGE_RE.search(headline))
+    typed_exec = type_set & CFO_TYPED_EXEC_TAGS
+    generic_admin = "Company Administration - Other"
+
+    if has_cfo_change:
+        if typed_exec:
+            return "A"
+        if type_set == {generic_admin} or (
+            generic_admin in type_set and not typed_exec
+        ):
+            return "A"
+        return "B"
+
+    if typed_exec and has_cfo:
+        return "B"
+
+    if (
+        typed_exec
+        and re.search(
+            r"\bCEO\b|chief executive|managing director|\bMD\b(?!\s*\&)",
+            headline,
+            re.I,
+        )
+        and has_cfo
+    ):
+        return "B"
+
+    if "Company Secretary Appointment/Resignation" in type_set and has_cfo:
+        return "B"
+
+    return None
+
+
+def is_cfo_change_announcement(
+    row: dict[str, str],
+    *,
+    include_tier_b: bool = False,
+) -> bool:
+    """Return True when a row matches CFO change headline signals."""
+    tier = cfo_change_tier(row)
+    if tier is None:
+        return False
+    if tier == "A":
+        return True
+    return include_tier_b
+
+
 def cdn_pdf_url(document_key: str) -> str:
     return f"{CDN_BASE}/{document_key}&v=undefined"
 

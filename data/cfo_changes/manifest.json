@@ -1,0 +1,69 @@
+{
+  "workers": 10,
+  "include_tier_b": false,
+  "tickers_with_matches": 899,
+  "total_documents": 2133,
+  "s3_path_pattern": "entities/{TICKER}/cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf",
+  "shards": [
+    {
+      "worker_id": "00",
+      "tickers": 90,
+      "documents": 214,
+      "file": "shards/10workers/shard_00.txt"
+    },
+    {
+      "worker_id": "01",
+      "tickers": 90,
+      "documents": 214,
+      "file": "shards/10workers/shard_01.txt"
+    },
+    {
+      "worker_id": "02",
+      "tickers": 90,
+      "documents": 214,
+      "file": "shards/10workers/shard_02.txt"
+    },
+    {
+      "worker_id": "03",
+      "tickers": 89,
+      "documents": 213,
+      "file": "shards/10workers/shard_03.txt"
+    },
+    {
+      "worker_id": "04",
+      "tickers": 90,
+      "documents": 213,
+      "file": "shards/10workers/shard_04.txt"
+    },
+    {
+      "worker_id": "05",
+      "tickers": 90,
+      "documents": 213,
+      "file": "shards/10workers/shard_05.txt"
+    },
+    {
+      "worker_id": "06",
+      "tickers": 90,
+      "documents": 213,
+      "file": "shards/10workers/shard_06.txt"
+    },
+    {
+      "worker_id": "07",
+      "tickers": 90,
+      "documents": 213,
+      "file": "shards/10workers/shard_07.txt"
+    },
+    {
+      "worker_id": "08",
+      "tickers": 90,
+      "documents": 213,
+      "file": "shards/10workers/shard_08.txt"
+    },
+    {
+      "worker_id": "09",
+      "tickers": 90,
+      "documents": 213,
+      "file": "shards/10workers/shard_09.txt"
+    }
+  ]
+}
