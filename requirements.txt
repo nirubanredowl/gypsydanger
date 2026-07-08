@@ -1,1 +1,2 @@
-# Stage 1 fetch pipeline — stdlib only; listed for documentation / future deps
+# Stage 1 fetch pipeline — stdlib + page counting
+pypdf>=4.0

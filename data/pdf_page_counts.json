@@ -1,0 +1,543 @@
+{
+  "bucket": "gypsy-danger-asx-691811257790",
+  "corpus": "all",
+  "credits_per_page": 10,
+  "list_only": false,
+  "totals": {
+    "files": 100,
+    "pages": 2601,
+    "bytes": 196477498,
+    "errors": 0,
+    "llamaparse_credits": 26010
+  },
+  "corpora": [
+    {
+      "name": "annual",
+      "prefix": "entities/{TICKER}/annual_reports/",
+      "file_count": 50,
+      "pages": 2532,
+      "bytes": 187353585,
+      "errors": 0,
+      "credits_per_page": 10,
+      "llamaparse_credits": 25320,
+      "elapsed_s": 15.9,
+      "error_samples": [],
+      "entries": [
+        {
+          "key": "entities/14D/annual_reports/2022_2924-02574467-2A1401835.pdf",
+          "pages": 52,
+          "bytes": 2089606
+        },
+        {
+          "key": "entities/14D/annual_reports/2018_2995-02028637-2A1107313.pdf",
+          "pages": 30,
+          "bytes": 2701124
+        },
+        {
+          "key": "entities/1AD/annual_reports/2016_2995-01780140-3A456566.pdf",
+          "pages": 46,
+          "bytes": 937308
+        },
+        {
+          "key": "entities/1AD/annual_reports/2017_2995-01893541-3A477278.pdf",
+          "pages": 55,
+          "bytes": 2797868
+        },
+        {
+          "key": "entities/1AD/annual_reports/2018_2995-02019916-3A500525.pdf",
+          "pages": 56,
+          "bytes": 3386933
+        },
+        {
+          "key": "entities/14D/annual_reports/2024_2924-02860163-2A1552191.pdf",
+          "pages": 56,
+          "bytes": 3562541
+        },
+        {
+          "key": "entities/1AD/annual_reports/2019_2924-02140456-3A522841.pdf",
+          "pages": 56,
+          "bytes": 2236931
+        },
+        {
+          "key": "entities/14D/annual_reports/2021_2924-02428372-2A1326925.pdf",
+          "pages": 46,
+          "bytes": 3016584
+        },
+        {
+          "key": "entities/14D/annual_reports/2023_2924-02718712-2A1477412.pdf",
+          "pages": 54,
+          "bytes": 3524532
+        },
+        {
+          "key": "entities/14D/annual_reports/2025_2924-02996759-2A1623167.pdf",
+          "pages": 29,
+          "bytes": 11307069
+        },
+        {
+          "key": "entities/14D/annual_reports/2020_2924-02292784-2A1255929.pdf",
+          "pages": 44,
+          "bytes": 14845080
+        },
+        {
+          "key": "entities/14D/annual_reports/2019_2924-02141333-2A1169844.pdf",
+          "pages": 43,
+          "bytes": 15767344
+        },
+        {
+          "key": "entities/1AD/annual_reports/2020_2924-02273180-3A548508.pdf",
+          "pages": 64,
+          "bytes": 6350400
+        },
+        {
+          "key": "entities/1AI/annual_reports/2009_2995-00983216-5A173767.pdf",
+          "pages": 70,
+          "bytes": 482776
+        },
+        {
+          "key": "entities/1AD/annual_reports/2023_2924-02702698-3A624392.pdf",
+          "pages": 62,
+          "bytes": 2798422
+        },
+        {
+          "key": "entities/1AD/annual_reports/2022_2924-02559778-3A600531.pdf",
+          "pages": 58,
+          "bytes": 2735166
+        },
+        {
+          "key": "entities/1AD/annual_reports/2024_2924-02844968-3A649148.pdf",
+          "pages": 70,
+          "bytes": 3015259
+        },
+        {
+          "key": "entities/1AD/annual_reports/2021_2924-02413590-3A574210.pdf",
+          "pages": 56,
+          "bytes": 4041120
+        },
+        {
+          "key": "entities/1AE/annual_reports/2024_2924-02860432-6A1228718.pdf",
+          "pages": 43,
+          "bytes": 2040945
+        },
+        {
+          "key": "entities/1AD/annual_reports/2025_2924-02984201-3A674576.pdf",
+          "pages": 59,
+          "bytes": 1893962
+        },
+        {
+          "key": "entities/1AE/annual_reports/2023_2924-02719345-6A1171676.pdf",
+          "pages": 52,
+          "bytes": 1649301
+        },
+        {
+          "key": "entities/1AE/annual_reports/2025_2924-02999451-6A1286453.pdf",
+          "pages": 39,
+          "bytes": 1842604
+        },
+        {
+          "key": "entities/1AE/annual_reports/2022_2924-02575994-6A1112789.pdf",
+          "pages": 50,
+          "bytes": 3537079
+        },
+        {
+          "key": "entities/1AI/annual_reports/2009_2995-00999947-5A174721.pdf",
+          "pages": 74,
+          "bytes": 6757911
+        },
+        {
+          "key": "entities/1AI/annual_reports/2009_2995-00999951-5A174722.pdf",
+          "pages": 2,
+          "bytes": 64755
+        },
+        {
+          "key": "entities/1AI/annual_reports/2010_2995-01092486-5A179294.pdf",
+          "pages": 61,
+          "bytes": 1250545
+        },
+        {
+          "key": "entities/1AI/annual_reports/2015_2995-01683732-2A890984.pdf",
+          "pages": 4,
+          "bytes": 163336
+        },
+        {
+          "key": "entities/1AI/annual_reports/2011_2995-01210944-5A184246.pdf",
+          "pages": 71,
+          "bytes": 869574
+        },
+        {
+          "key": "entities/1AI/annual_reports/2013_2995-01439333-2A752994.pdf",
+          "pages": 61,
+          "bytes": 710028
+        },
+        {
+          "key": "entities/1AI/annual_reports/2014_2995-01563427-2A823627.pdf",
+          "pages": 48,
+          "bytes": 1376296
+        },
+        {
+          "key": "entities/1AI/annual_reports/2010_2995-01109138-5A179999.pdf",
+          "pages": 43,
+          "bytes": 3443264
+        },
+        {
+          "key": "entities/1AI/annual_reports/2011_2995-01234875-5A185266.pdf",
+          "pages": 71,
+          "bytes": 3483926
+        },
+        {
+          "key": "entities/1AI/annual_reports/2013_2995-01453403-2A761214.pdf",
+          "pages": 56,
+          "bytes": 3938771
+        },
+        {
+          "key": "entities/1AI/annual_reports/2012_2995-01343263-2A700133.pdf",
+          "pages": 60,
+          "bytes": 3437406
+        },
+        {
+          "key": "entities/1AI/annual_reports/2016_2995-01770920-2A967889.pdf",
+          "pages": 45,
+          "bytes": 1928668
+        },
+        {
+          "key": "entities/1AI/annual_reports/2015_2995-01670680-2A884146.pdf",
+          "pages": 40,
+          "bytes": 4097448
+        },
+        {
+          "key": "entities/1AI/annual_reports/2016_2995-01790288-2A978600.pdf",
+          "pages": 44,
+          "bytes": 8473947
+        },
+        {
+          "key": "entities/1AI/annual_reports/2017_2995-01908239-2A1043045.pdf",
+          "pages": 44,
+          "bytes": 3891223
+        },
+        {
+          "key": "entities/1AI/annual_reports/2018_2995-02016690-2A1100828.pdf",
+          "pages": 44,
+          "bytes": 1289573
+        },
+        {
+          "key": "entities/1AI/annual_reports/2021_2924-02415273-2A1320053.pdf",
+          "pages": 47,
+          "bytes": 1606881
+        },
+        {
+          "key": "entities/1AI/annual_reports/2018_2995-02034261-2A1110540.pdf",
+          "pages": 44,
+          "bytes": 1367696
+        },
+        {
+          "key": "entities/1AI/annual_reports/2020_2924-02295642-2A1257287.pdf",
+          "pages": 43,
+          "bytes": 1195485
+        },
+        {
+          "key": "entities/1AI/annual_reports/2019_2924-02155777-2A1177902.pdf",
+          "pages": 44,
+          "bytes": 2780673
+        },
+        {
+          "key": "entities/1AI/annual_reports/2022_2924-02575203-2A1402245.pdf",
+          "pages": 42,
+          "bytes": 1354134
+        },
+        {
+          "key": "entities/1AI/annual_reports/2022_2924-02561802-2A1395162.pdf",
+          "pages": 51,
+          "bytes": 1486396
+        },
+        {
+          "key": "entities/1AI/annual_reports/2024_2924-02847033-2A1545234.pdf",
+          "pages": 47,
+          "bytes": 1839617
+        },
+        {
+          "key": "entities/1AI/annual_reports/2021_2924-02433208-2A1329803.pdf",
+          "pages": 44,
+          "bytes": 8704517
+        },
+        {
+          "key": "entities/1CG/annual_reports/2018_2995-01956632-2A1068021.pdf",
+          "pages": 82,
+          "bytes": 3026835
+        },
+        {
+          "key": "entities/1AI/annual_reports/2025_2924-02985883-2A1617574.pdf",
+          "pages": 53,
+          "bytes": 19208597
+        },
+        {
+          "key": "entities/1CG/annual_reports/2019_2995-02081389-2A1135910.pdf",
+          "pages": 77,
+          "bytes": 3046129
+        }
+      ]
+    },
+    {
+      "name": "cfo",
+      "prefix": "entities/{TICKER}/cfo_changes/",
+      "file_count": 50,
+      "pages": 69,
+      "bytes": 9123913,
+      "errors": 0,
+      "credits_per_page": 10,
+      "llamaparse_credits": 690,
+      "elapsed_s": 11.1,
+      "error_samples": [],
+      "entries": [
+        {
+          "key": "entities/360/cfo_changes/2020-05-11_2924-02234355-2A1225077.pdf",
+          "pages": 1,
+          "bytes": 107703
+        },
+        {
+          "key": "entities/3PL/cfo_changes/2022-04-19_2924-02511352-2A1369211.pdf",
+          "pages": 1,
+          "bytes": 81724
+        },
+        {
+          "key": "entities/3PL/cfo_changes/2020-03-31_2924-02220829-2A1217360.pdf",
+          "pages": 1,
+          "bytes": 139488
+        },
+        {
+          "key": "entities/360/cfo_changes/2020-02-03_2924-02198942-2A1200699.pdf",
+          "pages": 1,
+          "bytes": 107530
+        },
+        {
+          "key": "entities/3PL/cfo_changes/2024-10-23_2924-02870672-2A1557480.pdf",
+          "pages": 1,
+          "bytes": 144768
+        },
+        {
+          "key": "entities/3DA/cfo_changes/2025-04-03_2924-02932794-3A665647.pdf",
+          "pages": 2,
+          "bytes": 120428
+        },
+        {
+          "key": "entities/5GN/cfo_changes/2020-03-23_2924-02217159-2A1215081.pdf",
+          "pages": 1,
+          "bytes": 90144
+        },
+        {
+          "key": "entities/3PL/cfo_changes/2026-06-22_2924-03102527-2A1678506.pdf",
+          "pages": 1,
+          "bytes": 194660
+        },
+        {
+          "key": "entities/4DX/cfo_changes/2022-06-23_2924-02534801-3A596004.pdf",
+          "pages": 2,
+          "bytes": 220770
+        },
+        {
+          "key": "entities/4DX/cfo_changes/2026-01-01_2924-03042815-3A684827.pdf",
+          "pages": 3,
+          "bytes": 271769
+        },
+        {
+          "key": "entities/3DA/cfo_changes/2025-06-29_2924-02961710-3A670756.pdf",
+          "pages": 2,
+          "bytes": 220414
+        },
+        {
+          "key": "entities/3PL/cfo_changes/2018-09-04_2995-02019095-2A1102076.pdf",
+          "pages": 1,
+          "bytes": 177226
+        },
+        {
+          "key": "entities/8CO/cfo_changes/2018-10-29_2995-02040604-2A1113775.pdf",
+          "pages": 1,
+          "bytes": 57469
+        },
+        {
+          "key": "entities/8CO/cfo_changes/2017-02-24_2995-01832625-2A1000603.pdf",
+          "pages": 1,
+          "bytes": 56488
+        },
+        {
+          "key": "entities/5GN/cfo_changes/2024-06-17_2924-02818301-2A1529538.pdf",
+          "pages": 1,
+          "bytes": 453287
+        },
+        {
+          "key": "entities/8CO/cfo_changes/2025-03-31_2924-02930804-2A1587895.pdf",
+          "pages": 1,
+          "bytes": 34010
+        },
+        {
+          "key": "entities/5GN/cfo_changes/2025-08-13_2924-02978175-2A1613487.pdf",
+          "pages": 2,
+          "bytes": 372041
+        },
+        {
+          "key": "entities/A1M/cfo_changes/2025-04-10_2924-02935240-6A1259727.pdf",
+          "pages": 1,
+          "bytes": 139914
+        },
+        {
+          "key": "entities/5GN/cfo_changes/2026-04-06_2924-03075929-2A1664588.pdf",
+          "pages": 1,
+          "bytes": 343342
+        },
+        {
+          "key": "entities/8IH/cfo_changes/2015-04-06_2995-01614136-6A715060.pdf",
+          "pages": 2,
+          "bytes": 304031
+        },
+        {
+          "key": "entities/A2M/cfo_changes/2019-09-23_2924-02149775-2A1174585.pdf",
+          "pages": 2,
+          "bytes": 190254
+        },
+        {
+          "key": "entities/A2M/cfo_changes/2022-05-16_2924-02522133-2A1374220.pdf",
+          "pages": 2,
+          "bytes": 167673
+        },
+        {
+          "key": "entities/A1N/cfo_changes/2024-10-17_2924-02867773-2A1556250.pdf",
+          "pages": 1,
+          "bytes": 331164
+        },
+        {
+          "key": "entities/A1N/cfo_changes/2025-01-28_2924-02906522-2A1575169.pdf",
+          "pages": 1,
+          "bytes": 295429
+        },
+        {
+          "key": "entities/AAC/cfo_changes/2010-10-17_2995-01108906-2A609683.pdf",
+          "pages": 2,
+          "bytes": 20016
+        },
+        {
+          "key": "entities/AAC/cfo_changes/2013-01-24_2995-01376091-2A717333.pdf",
+          "pages": 1,
+          "bytes": 17919
+        },
+        {
+          "key": "entities/A4N/cfo_changes/2023-10-16_2924-02726024-2A1481160.pdf",
+          "pages": 1,
+          "bytes": 115024
+        },
+        {
+          "key": "entities/AA2/cfo_changes/2026-03-31_2924-03074378-6A1318877.pdf",
+          "pages": 2,
+          "bytes": 140234
+        },
+        {
+          "key": "entities/AAC/cfo_changes/2014-06-15_2995-01525461-2A801687.pdf",
+          "pages": 1,
+          "bytes": 16463
+        },
+        {
+          "key": "entities/AAC/cfo_changes/2013-04-03_2995-01396842-2A728781.pdf",
+          "pages": 2,
+          "bytes": 28917
+        },
+        {
+          "key": "entities/ABG/cfo_changes/2012-10-23_2995-01346590-2A701844.pdf",
+          "pages": 1,
+          "bytes": 55203
+        },
+        {
+          "key": "entities/ABV/cfo_changes/2014-08-26_2995-01546289-6A688964.pdf",
+          "pages": 1,
+          "bytes": 47430
+        },
+        {
+          "key": "entities/ABB/cfo_changes/2026-01-29_2924-03050886-3A686203.pdf",
+          "pages": 2,
+          "bytes": 176103
+        },
+        {
+          "key": "entities/ABG/cfo_changes/2026-06-23_2924-03102892-2A1678761.pdf",
+          "pages": 1,
+          "bytes": 143287
+        },
+        {
+          "key": "entities/AAC/cfo_changes/2022-10-31_2924-02592359-2A1410520.pdf",
+          "pages": 1,
+          "bytes": 263357
+        },
+        {
+          "key": "entities/ABV/cfo_changes/2018-08-22_2995-02012593-6A896175.pdf",
+          "pages": 1,
+          "bytes": 192137
+        },
+        {
+          "key": "entities/ABY/cfo_changes/2025-12-02_2924-03032085-3A682969.pdf",
+          "pages": 1,
+          "bytes": 149118
+        },
+        {
+          "key": "entities/ABV/cfo_changes/2019-10-30_2924-02167141-6A952924.pdf",
+          "pages": 1,
+          "bytes": 238667
+        },
+        {
+          "key": "entities/ABX/cfo_changes/2024-01-29_2924-02766624-2A1501711.pdf",
+          "pages": 2,
+          "bytes": 464919
+        },
+        {
+          "key": "entities/ACL/cfo_changes/2024-09-01_2924-02847302-3A649645.pdf",
+          "pages": 1,
+          "bytes": 156312
+        },
+        {
+          "key": "entities/ACE/cfo_changes/2023-11-21_2924-02743245-2A1489302.pdf",
+          "pages": 2,
+          "bytes": 416373
+        },
+        {
+          "key": "entities/ACU/cfo_changes/2025-07-06_2924-02964718-2A1606997.pdf",
+          "pages": 1,
+          "bytes": 148265
+        },
+        {
+          "key": "entities/ACU/cfo_changes/2025-12-24_2924-03041646-2A1645128.pdf",
+          "pages": 1,
+          "bytes": 111085
+        },
+        {
+          "key": "entities/ACU/cfo_changes/2016-09-27_2995-01782924-2A974590.pdf",
+          "pages": 1,
+          "bytes": 355903
+        },
+        {
+          "key": "entities/ACU/cfo_changes/2026-05-27_2924-03094279-2A1674068.pdf",
+          "pages": 1,
+          "bytes": 112240
+        },
+        {
+          "key": "entities/ACW/cfo_changes/2020-09-27_2924-02286020-2A1252402.pdf",
+          "pages": 2,
+          "bytes": 207181
+        },
+        {
+          "key": "entities/ACW/cfo_changes/2023-11-07_2924-02737086-2A1486379.pdf",
+          "pages": 3,
+          "bytes": 257347
+        },
+        {
+          "key": "entities/AD1/cfo_changes/2018-05-14_2995-01981236-3A493250.pdf",
+          "pages": 2,
+          "bytes": 379158
+        },
+        {
+          "key": "entities/AD8/cfo_changes/2024-05-27_2924-02810847-2A1525315.pdf",
+          "pages": 1,
+          "bytes": 125788
+        },
+        {
+          "key": "entities/AD1/cfo_changes/2023-04-02_2924-02650575-3A615960.pdf",
+          "pages": 1,
+          "bytes": 163741
+        }
+      ]
+    }
+  ]
+}

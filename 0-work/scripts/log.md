@@ -192,3 +192,13 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `aws/run_cfo_changes_fetch.sh --async` (after waiter fix)
 - **Exit:** 0
 - **Result:** **PASS** — run `20260706T225009Z-cfo-fetch`; 2,133/2,133 tier-A PDFs in S3 (`1,231` uploaded + `902` skipped this run); 899 tickers; 0 failures; ~15 min. Progress manifest accurate; email summary double-counted interim `_progress.json` files (cosmetic).
+
+## 2026-07-08 — PDF page count sample (LlamaParse cost estimate)
+- **Command:** `python3 19_count_s3_pdf_pages.py --sample 50 --workers 12`
+- **Exit:** 0
+- **Result:** 50 annual + 50 CFO PDFs; annual 2,532 pages (avg 50.6/PDF), CFO 69 pages (avg 1.4/PDF). Sample credits: 26,010 @ 10/page. Full-corpus extrapolation ~1.15M pages / ~11.5M credits. Output: `data/pdf_page_counts.json`.
+
+## 2026-07-08 — openparse-sample experiment
+- **Command:** `parse_sample_corpus.py --corpus cfo --limit 3`
+- **Exit:** 0
+- **Result:** New folder `0-work/experiments/openparse-sample/` — parses page-count sample PDFs with open-parse (local, no LlamaParse credits). Smoke test: 3 CFO PDFs OK. VM entrypoint: `run_vm.sh`.
