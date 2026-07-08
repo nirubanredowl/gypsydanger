@@ -202,3 +202,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `parse_sample_corpus.py --corpus cfo --limit 3`
 - **Exit:** 0
 - **Result:** New folder `0-work/experiments/openparse-sample/` — parses page-count sample PDFs with open-parse (local, no LlamaParse credits). Smoke test: 3 CFO PDFs OK. VM entrypoint: `run_vm.sh`.
+
+## 2026-07-08 — liteparse-sample experiment
+- **Command:** `parse_sample_corpus.py --corpus cfo --limit 3`
+- **Exit:** 0
+- **Result:** New folder `0-work/experiments/liteparse-sample/` — same 100-PDF manifest, LiteParse (local). Smoke test: 3 CFO PDFs OK. VM entrypoint: `run_vm.sh`.
