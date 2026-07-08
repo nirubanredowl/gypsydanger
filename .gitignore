@@ -1,3 +1,6 @@
 0-work/scripts/.env
 data/cache/
 data/entities/**/raw/*.pdf
+data/parse-sample-corpus/pdfs/
+data/parse-sample-corpus/openparse/
+data/parse-sample-corpus/liteparse/

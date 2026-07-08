@@ -207,3 +207,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `parse_sample_corpus.py --corpus cfo --limit 3`
 - **Exit:** 0
 - **Result:** New folder `0-work/experiments/liteparse-sample/` — same 100-PDF manifest, LiteParse (local). Smoke test: 3 CFO PDFs OK. VM entrypoint: `run_vm.sh`.
+
+## 2026-07-08 — parse sample bundle (open-parse + LiteParse)
+- **Command:** `run_parse_sample_bundle.sh` + `21_bundle_parse_samples.py`
+- **Exit:** 1 (1 open-parse failure)
+- **Result:** `data/parse-sample-corpus/` — 100 PDFs, 99 openparse + 100 liteparse JSON/MD. Failed open-parse: `AAC_2013-04-03` (pdfminer image error). LiteParse 100/100.

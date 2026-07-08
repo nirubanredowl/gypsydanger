@@ -86,8 +86,9 @@ def parse_args() -> argparse.Namespace:
 def aws_cmd_bytes(*parts: str) -> subprocess.CompletedProcess[bytes]:
     env = os.environ.copy()
     env["AWS_PAGER"] = ""
+    env["AWS_CLI_PAGER"] = ""
     return subprocess.run(
-        ["aws", *parts, "--no-cli-pager"],
+        ["aws", *parts],
         capture_output=True,
         env=env,
     )

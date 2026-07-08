@@ -1,0 +1,65 @@
+{
+  "parser": "open-parse",
+  "manifest": "/workspace/data/pdf_page_counts.json",
+  "corpus_filter": "cfo",
+  "pipeline": "noop",
+  "ml_tables": false,
+  "parsed": 4,
+  "skipped": 0,
+  "failed": 1,
+  "results": [
+    {
+      "slug": "AAC_2010-10-17_2995-01108906-2A609683",
+      "corpus": "cfo",
+      "ticker": "AAC",
+      "s3_key": "entities/AAC/cfo_changes/2010-10-17_2995-01108906-2A609683.pdf",
+      "node_count": 33,
+      "table_like_nodes": 0,
+      "total_text_chars": 2463,
+      "elapsed_s": 0.1,
+      "status": "ok"
+    },
+    {
+      "slug": "AAC_2013-01-24_2995-01376091-2A717333",
+      "corpus": "cfo",
+      "ticker": "AAC",
+      "s3_key": "entities/AAC/cfo_changes/2013-01-24_2995-01376091-2A717333.pdf",
+      "node_count": 20,
+      "table_like_nodes": 0,
+      "total_text_chars": 923,
+      "elapsed_s": 0.0,
+      "status": "ok"
+    },
+    {
+      "slug": "AAC_2014-06-15_2995-01525461-2A801687",
+      "corpus": "cfo",
+      "ticker": "AAC",
+      "s3_key": "entities/AAC/cfo_changes/2014-06-15_2995-01525461-2A801687.pdf",
+      "node_count": 14,
+      "table_like_nodes": 0,
+      "total_text_chars": 740,
+      "elapsed_s": 0.0,
+      "status": "ok"
+    },
+    {
+      "slug": "AAC_2013-04-03_2995-01396842-2A728781",
+      "corpus": "cfo",
+      "ticker": "AAC",
+      "s3_key": "entities/AAC/cfo_changes/2013-04-03_2995-01396842-2A728781.pdf",
+      "status": "error",
+      "error": "None",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/0-work/experiments/openparse-sample/parse_sample_corpus.py\", line 280, in main\n    parsed = parse_pdf(\n             ^^^^^^^^^^\n  File \"/workspace/0-work/experiments/openparse-sample/parse_sample_corpus.py\", line 183, in parse_pdf\n    parsed = parser.parse(str(pdf_path))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/openparse/doc_parser.py\", line 100, in parse\n    text_elems = text.ingest(doc, parsing_method=text_engine)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/openparse/text/parse.py\", line 19, in ingest\n    return pdfminer.ingest(doc)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/openparse/text/pdfminer/core.py\", line 251, in ingest\n    img_data = e.stream.get_data()\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/pdfminer/pdftypes.py\", line 401, in get_data\n    self.decode()\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/pdfminer/pdftypes.py\", line 349, in decode\n    data = ccittfaxdecode(data, params)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/pdfminer/ccitt.py\", line 565, in ccittfaxdecode\n    parser.feedbytes(data)\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/pdfminer/ccitt.py\", line 347, in feedbytes\n    self._parse_bit(byte & m)\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/pdfminer/ccitt.py\", line 71, in _parse_bit\n    self._state = self._accept(v)\n                  ^^^^^^^^^^^^^^^\n  File \"/home/ubuntu/.local/lib/python3.12/site-packages/pdfminer/ccitt.py\", line 376, in _parse_mode\n    raise self.InvalidData(mode)\npdfminer.ccitt.CCITTG4Parser.InvalidData: None\n"
+    },
+    {
+      "slug": "AAC_2022-10-31_2924-02592359-2A1410520",
+      "corpus": "cfo",
+      "ticker": "AAC",
+      "s3_key": "entities/AAC/cfo_changes/2022-10-31_2924-02592359-2A1410520.pdf",
+      "node_count": 9,
+      "table_like_nodes": 0,
+      "total_text_chars": 247,
+      "elapsed_s": 0.1,
+      "status": "ok"
+    }
+  ]
+}
