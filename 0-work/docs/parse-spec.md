@@ -125,6 +125,8 @@ Local mirror (optional): `data/parsed/…` for pilot tickers only.
 
 ## Execution plan (draft)
 
+> **Superseded by:** [`0-work/plans/stage3-parse-enrichment.md`](../plans/stage3-parse-enrichment.md) — LiteParse + page split + Gemini/Mastra enrichment. LlamaParse no longer preferred (cost). This doc retains sample review notes and table schema draft.
+
 1. **Pilot** — 8 sample tickers above + CBA/QGL (preflight); validate Parse A quality.
 2. **Lock table schema** — you annotate samples; update § Parse B schema in this doc.
 3. **Implement** — `15_parse_annual_reports.py` (Parse A), then `16_structure_tables.py` (Parse B).

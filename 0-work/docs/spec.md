@@ -62,14 +62,14 @@ data/
 
 - [ ] Stage 1: test fetch pipeline on pilot tickers
 - [ ] Stage 2: full ASX fetch
-- [ ] Stage 3: parse (TBD)
+- [ ] Stage 3: parse — see [`0-work/plans/stage3-parse-enrichment.md`](../plans/stage3-parse-enrichment.md)
 - [ ] Stage 4: analysis (TBD)
 
 ## Agent brief
 
-**Current state:** **Phase C complete** (~22,560 annual reports in S3). **CFO change fetch complete** — 2,133 tier-A PDFs at `entities/{TICKER}/cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf`. **Stage 3 parse** in design — see [`0-work/docs/parse-spec.md`](parse-spec.md).
+**Current state:** **Fetch complete** — ~22,560 annual reports + 2,133 CFO change PDFs in S3. **Parse pilot complete** — 100-doc comparison in `data/parse-sample-corpus/` (LiteParse 100/100). LlamaParse ruled out on cost (~11M credits).
 
-**Next action:** Review sample PDFs (`14_parse_sample_links.py`) → lock Parse B table schema → pilot Parse A on ~10 tickers.
+**Next action:** Execute [`0-work/plans/stage3-parse-enrichment.md`](../plans/stage3-parse-enrichment.md) — Sprint 1: LiteParse + page split + Mastra/Gemini enrich on pilot tickers.
 
 **Constraints**
 
