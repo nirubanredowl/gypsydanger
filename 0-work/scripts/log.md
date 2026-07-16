@@ -212,3 +212,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `run_parse_sample_bundle.sh` + `21_bundle_parse_samples.py`
 - **Exit:** 1 (1 open-parse failure)
 - **Result:** `data/parse-sample-corpus/` — 100 PDFs, 99 openparse + 100 liteparse JSON/MD. Failed open-parse: `AAC_2013-04-03` (pdfminer image error). LiteParse 100/100.
+
+## 2026-07-16 — Stage 3A LiteParse EC2 pipeline
+- **Command:** `python3 25_build_parse_shards.py --workers 20` (local build; launch via `aws/run_liteparse_parse.sh`)
+- **Exit:** 0
+- **Result:** Scripts `22_liteparse_document.py`, `23_liteparse_shard.py`, `25_build_parse_shards.py`, `26_parse_progress*.py`; AWS orchestration `run_liteparse_parse.sh` + waiter/SNS; 20 balanced shards / 22,573 docs in `data/parse_3a/`. Output prefix `parsed/{TICKER}/01_annual_reports/{documentKey}/liteparse/`. Status ping: `request_parse_progress.sh`.

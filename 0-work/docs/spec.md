@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Fetch complete** — ~22,560 annual reports + 2,133 CFO change PDFs in S3. **Parse pilot complete** — 100-doc comparison in `data/parse-sample-corpus/` (LiteParse 100/100). LlamaParse ruled out on cost (~11M credits).
+**Current state:** **Fetch complete** — ~22,560 annual reports + 2,133 CFO change PDFs in S3. **Parse pilot complete** — 100-doc comparison in `data/parse-sample-corpus/` (LiteParse 100/100). **Stage 3A tooling ready** — distributed LiteParse EC2 pipeline (`run_liteparse_parse.sh`).
 
-**Next action:** Execute [`0-work/plans/stage3-parse-enrichment.md`](../plans/stage3-parse-enrichment.md) — Sprint 1: LiteParse + page split + Mastra/Gemini enrich on pilot tickers.
+**Next action:** Launch Stage 3A on EC2: `0-work/scripts/aws/run_liteparse_parse.sh --async`. Monitor via `request_parse_progress.sh` or SNS milestones.
 
 **Constraints**
 

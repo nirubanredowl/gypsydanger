@@ -208,6 +208,44 @@ def s3_cfo_change_key(ticker: str, date_str: str, document_key: str) -> str:
     return f"entities/{ticker.upper()}/cfo_changes/{name}"
 
 
+# Ordered corpus registry — mirrors data/catalog/corpus_registry.csv
+CORPUS_REGISTRY: dict[str, tuple[str, str, str]] = {
+    "annual_reports": ("01", "01_annual_reports", "annual_reports"),
+    "quarterly_reports": ("02", "02_quarterly_reports", "quarterly_reports"),
+    "half_year_reports": ("03", "03_half_year_reports", "half_year_reports"),
+    "full_year_accounts": ("04", "04_full_year_accounts", "full_year_accounts"),
+    "cfo_changes": ("05", "05_cfo_changes", "cfo_changes"),
+    "ceo_changes": ("06", "06_ceo_changes", "ceo_changes"),
+    "appendix_4g": ("07", "07_appendix_4g", "appendix_4g"),
+    "director_changes": ("08", "08_director_changes", "director_changes"),
+}
+
+
+def corpus_info(corpus_key: str) -> tuple[str, str, str]:
+    """Return (corpus_id, parse_folder, fetch_s3_folder) for a corpus_key."""
+    try:
+        return CORPUS_REGISTRY[corpus_key]
+    except KeyError as exc:
+        raise ValueError(f"unknown corpus_key: {corpus_key}") from exc
+
+
+def parsed_doc_folder(document_key: str) -> str:
+    """Folder name for a parsed document (safe for S3 paths)."""
+    return safe_document_key(document_key)
+
+
+def s3_parsed_doc_prefix(ticker: str, corpus_key: str, document_key: str) -> str:
+    """S3 prefix for one parsed document folder."""
+    _, parse_folder, _ = corpus_info(corpus_key)
+    doc = parsed_doc_folder(document_key)
+    return f"parsed/{ticker.upper()}/{parse_folder}/{doc}"
+
+
+def s3_liteparse_manifest_key(ticker: str, corpus_key: str, document_key: str) -> str:
+    """Guard key — skip parse when this object exists."""
+    return f"{s3_parsed_doc_prefix(ticker, corpus_key, document_key)}/liteparse/manifest.json"
+
+
 def cfo_change_tier(row: dict[str, str]) -> str | None:
     """Return tier ``A`` or ``B`` when row is a CFO change candidate, else None."""
     headline = (row.get("headline") or "").strip()

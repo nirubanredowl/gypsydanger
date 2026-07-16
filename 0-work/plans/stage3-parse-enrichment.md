@@ -146,7 +146,11 @@ parsed/{TICKER}/01_annual_reports/{document_key}/   # corpus folder from registr
 |--------|------|
 | `22_liteparse_document.py` | Single-PDF parse (S3 → output prefix) |
 | `23_liteparse_shard.py` | Shard worker (multi-doc, progress upload) |
+| `25_build_parse_shards.py` | Balanced ticker shards for workers |
+| `26_parse_progress.py` | Progress report (CLI / email body) |
+| `26_parse_progress_watcher.py` | Milestone + on-demand SNS emails |
 | `aws/run_liteparse_parse.sh` | Orchestrator (shards, EC2, SNS) — mirror Phase C pattern |
+| `aws/request_parse_progress.sh` | Ping for status email (`--now` for instant) |
 
 ### Pilot gate
 - Run on `data/parse-sample-corpus/` (100 PDFs) — **done**
@@ -416,16 +420,19 @@ Per document at `parsed/{TICKER}/{parse_folder}/{document_key}/meta.json`.
 
 ### Document-level statements (`flash/statements/`)
 
-Meaningful financial tables **promoted** from pages — not every markdown table, only statement-level:
+Meaningful financial tables **promoted** from pages — standard annual-report statements:
 
-| File | `statement_type` |
-|------|------------------|
-| `income_statement.json` | `income` |
-| `balance_sheet.json` | `balance_sheet` |
-| `cash_flow.json` | `cash_flow` |
-| `changes_in_equity.json` | `equity` |
-| `notes.json` | `notes` (optional aggregate) |
-| `manifest.json` | which statements exist, source `page_id`s, confidence |
+| File | `statement_type` | Common ASX heading |
+|------|-------------------|-------------------|
+| `income_statement.json` | `income` | Statement of profit or loss / income statement |
+| `comprehensive_income.json` | `comprehensive_income` | Statement of comprehensive income (if separate from P&L) |
+| `balance_sheet.json` | `balance_sheet` | Statement of financial position |
+| `changes_in_equity.json` | `changes_in_equity` | Statement of changes in equity |
+| `cash_flow.json` | `cash_flow` | Statement of cash flows |
+| `notes.json` | `notes` | Notes to the financial statements (optional aggregate) |
+| `manifest.json` | — | which statements exist, source `page_id`s, confidence |
+
+Not every document will have every statement (some combine P&L + comprehensive income). `manifest.json` records what was found; missing types are null, not errors.
 
 ```json
 // flash/statements/income_statement.json
@@ -551,7 +558,7 @@ For now: **sequential Python runner + `state.json`** per document, Gemini Flash 
 |--------|-------|
 | `statement_id` | PK |
 | `document_key`, `ticker`, `corpus_id` | |
-| `statement_type` | `income`, `balance_sheet`, `cash_flow`, … |
+| `statement_type` | `income`, `comprehensive_income`, `balance_sheet`, `changes_in_equity`, `cash_flow`, `notes` |
 | `reporting_period_label` | denorm from meta |
 | `unit`, `currency`, `columns` | JSON |
 | `row_count`, `confidence` | |
