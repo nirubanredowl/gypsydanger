@@ -54,7 +54,6 @@ export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 export GYPSY_SNS_TOPIC_ARN=${GYPSY_SNS_TOPIC_ARN:-}
 ENV
 dnf install -y python3 python3-pip aws-cli
-python3 -m pip install --upgrade pip
 ROOT=/opt/gypsy-danger
 mkdir -p "\$ROOT/0-work/scripts" "\$ROOT/data/parse_3a"
 aws s3 cp "s3://${BUCKET}/scripts/requirements-parse.txt" "\$ROOT/0-work/scripts/"
