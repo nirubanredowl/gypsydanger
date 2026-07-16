@@ -625,11 +625,13 @@ data/parsed/{TICKER}/   # pilot tickers only
 
 ---
 
-## Phase 3C — LLM enrichment (Gemini + Mastra)
+## Phase 3C — Gemini Flash enrichment (Mastra deferred)
 
-**Purpose:** Produce a **cleaned report** and **structured tables** from LiteParse draft + page images. Multi-step with explicit state.
+**Purpose:** Clean LiteParse output per page; promote meaningful statements (P&L, balance sheet, cash flow) to standalone JSON.
 
-### Why Mastra
+**Current scope:** Direct Gemini Flash API via Python runner. **Mastra** orchestration documented separately when scoped — not part of the parsing pilot.
+
+### Why Mastra (later)
 - Workflow / agent orchestration with **durable step state**
 - Retry, resume, and human-in-the-loop hooks
 - Clean separation: parse (deterministic) vs enrich (LLM)
