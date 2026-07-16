@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Fetch complete**. **Stage 3A partial** — 2,926/22,573 annual reports parsed (run `20260716T123530Z-parse`, 0 failures). **Continuation run:** `20260716T140917Z-parse` (waiter bug fixed; skips existing).
+**Current state:** **Stage 3A complete** — 22,570/22,573 annual reports parsed in S3 (`20260716T140917Z-parse`); **3 documentKeys** have no CDN PDF (`manifests/parse/unavailable_cdn_pdfs.json`). SIX 2015 has a second annual report already parsed.
 
-**Next action:** Monitor via `request_parse_progress.sh` or SNS. Expect **PASS** email when ~22,573 docs done.
+**Next action:** Stage 3B page split / 3C Flash, or manual PDF sourcing for the 3 unavailable keys (CCR 2023, REZ 2014, SIX 2015-09-30).
 
 **Constraints**
 

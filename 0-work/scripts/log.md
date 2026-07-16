@@ -237,3 +237,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** SNS completion email; `manifests/parse/20260716T123530Z-parse/summary.json`
 - **Exit:** 0 (orchestration) / `passed: false`
 - **Result:** **2,926 parsed, 281,481 pages, 0 failed** (fix worked). Only ~13% of 22,573 corpus — waiter counted workers done on first progress upload (`complete=false`), terminated EC2 early. Fixed `worker_done()` in `liteparse_wait_and_notify.sh`. Relaunch will skip existing manifests via `skip_if_exists`.
+
+## 2026-07-16 23:50 — Retry 3 missing parse PDFs (CDN unavailable)
+- **Command:** `python3 13_retry_failed_annual_reports.py --from-json … --run-id parse-missing-pdf-retry`
+- **Exit:** 1
+- **Result:** Refetch failed for SIX/CCR/REZ documentKeys — Markit CDN returns `[]` (not PDF) from agent + soak EC2. No reparse possible. Manifest: `data/parse_3a/unavailable_cdn_pdfs.json` → `s3://…/manifests/parse/unavailable_cdn_pdfs.json`. SIX 2015: alternate annual report `2995-01679603-6A740324` already in S3 and parsed.
