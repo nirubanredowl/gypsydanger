@@ -43,9 +43,10 @@ worker_done() {
   aws s3 cp "s3://${BUCKET}/${PREFIX}worker_${wid}.json" "/tmp/parse_${wid}.json" 2>/dev/null || return 1
   python3 - <<PY
 import json
+import sys
 from pathlib import Path
 row = json.loads(Path("/tmp/parse_${wid}.json").read_text())
-print("yes" if row.get("complete") else "no")
+sys.exit(0 if row.get("complete") else 1)
 PY
 }
 
