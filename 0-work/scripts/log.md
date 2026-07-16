@@ -224,3 +224,11 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Result:** Code on `main`; kickoff blocked because `0-work/scripts/.env` is not on disk (only `.env.example`). Branch merge did not remove it (gitignored). Need `.env` restored with `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` as used for prior fetch runs.
 
 ## 2026-07-16 12:05 — Stage 3A credentials + SNS verified; parse relaunched
+- **Command:** `aws sts get-caller-identity`; `aws sns get-topic-attributes`; `aws/run_liteparse_parse.sh --async` (after worker bootstrap fixes)
+- **Exit:** 0
+- **Result:** Credentials OK. SNS ARN confirmed. Bootstrap fixes: skip pip upgrade on AL2023; Python 3.11 for liteparse 2.x. Run `20260716T115756Z-parse` launched.
+
+## 2026-07-16 12:15 — Stage 3A run 20260716T115756Z-parse DONE (all failed)
+- **Command:** SNS completion email; `manifests/parse/20260716T115756Z-parse/summary.json`
+- **Exit:** 0 (orchestration) / job failed
+- **Result:** 0 parsed, 2,080 failed. Cause: `announcement_types` set not JSON-serializable in `meta.json`. Fixed in `22_liteparse_document.py`. Relaunched `20260716T123530Z-parse`.
