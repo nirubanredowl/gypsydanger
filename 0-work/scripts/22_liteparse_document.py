@@ -194,7 +194,7 @@ def build_meta(
     parse_result: dict[str, Any],
 ) -> dict[str, Any]:
     corpus_id, parse_folder, fetch_folder = asx.corpus_info(corpus_key)
-    types = asx.parse_announcement_types(announcement_types) if announcement_types else []
+    types = sorted(asx.parse_announcement_types(announcement_types)) if announcement_types else []
     return {
         "document_key": document_key,
         "ticker": ticker.upper(),
