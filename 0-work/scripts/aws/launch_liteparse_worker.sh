@@ -53,11 +53,11 @@ export GYPSY_S3_BUCKET=${BUCKET}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 export GYPSY_SNS_TOPIC_ARN=${GYPSY_SNS_TOPIC_ARN:-}
 ENV
-dnf install -y python3 python3-pip aws-cli
+dnf install -y python3.11 python3.11-pip aws-cli
 ROOT=/opt/gypsy-danger
 mkdir -p "\$ROOT/0-work/scripts" "\$ROOT/data/parse_3a"
 aws s3 cp "s3://${BUCKET}/scripts/requirements-parse.txt" "\$ROOT/0-work/scripts/"
-python3 -m pip install -r "\$ROOT/0-work/scripts/requirements-parse.txt"
+python3.11 -m pip install -r "\$ROOT/0-work/scripts/requirements-parse.txt"
 aws s3 cp "s3://${BUCKET}/scripts/00_asx_api.py" "\$ROOT/0-work/scripts/"
 aws s3 cp "s3://${BUCKET}/scripts/11_fetch_annual_reports_s3.py" "\$ROOT/0-work/scripts/"
 aws s3 cp "s3://${BUCKET}/scripts/22_liteparse_document.py" "\$ROOT/0-work/scripts/"
@@ -65,7 +65,7 @@ aws s3 cp "s3://${BUCKET}/scripts/23_liteparse_shard.py" "\$ROOT/0-work/scripts/
 aws s3 cp "s3://${BUCKET}/parse_3a/shards/${WORKERS}workers/shard_${shard_id}.txt" "\$ROOT/data/parse_3a/shard.txt"
 cd "\$ROOT/0-work/scripts"
 set +e
-python3 23_liteparse_shard.py \\
+python3.11 23_liteparse_shard.py \\
   --tickers-file "\$ROOT/data/parse_3a/shard.txt" \\
   --bucket ${BUCKET} \\
   --run-id ${RUN_ID} \\
