@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Fetch complete** — ~22,560 annual reports + 2,133 CFO change PDFs in S3. **Parse pilot complete** — 100-doc comparison in `data/parse-sample-corpus/` (LiteParse 100/100). **Stage 3A tooling ready** — distributed LiteParse EC2 pipeline (`run_liteparse_parse.sh`).
+**Current state:** **Fetch complete** — ~22,560 annual reports + 2,133 CFO change PDFs in S3. **Parse pilot complete** — 100-doc comparison in `data/parse-sample-corpus/` (LiteParse 100/100). **Stage 3A running** — run `20260716T115756Z-parse` (20 EC2 workers, LiteParse 2.6.0).
 
-**Next action:** Launch Stage 3A on EC2: `0-work/scripts/aws/run_liteparse_parse.sh --async`. Monitor via `request_parse_progress.sh` or SNS milestones.
+**Next action:** Monitor Stage 3A via `request_parse_progress.sh` or SNS milestones. After 3A completes: Stage 3B page split, then 3C Gemini Flash.
 
 **Constraints**
 
