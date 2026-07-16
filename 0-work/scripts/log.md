@@ -218,7 +218,7 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Exit:** 0
 - **Result:** Scripts `22_liteparse_document.py`, `23_liteparse_shard.py`, `25_build_parse_shards.py`, `26_parse_progress*.py`; AWS orchestration `run_liteparse_parse.sh` + waiter/SNS; 20 balanced shards / 22,573 docs in `data/parse_3a/`. Output prefix `parsed/{TICKER}/01_annual_reports/{documentKey}/liteparse/`. Status ping: `request_parse_progress.sh`.
 
-## 2026-07-16 — Stage 3A kickoff (blocked — no AWS creds in agent)
-- **Command:** `aws/run_liteparse_on_ec2.sh`, `aws/ensure_env.sh`
+## 2026-07-16 — Stage 3A kickoff (blocked — .env missing on disk)
+- **Command:** `aws/run_liteparse_on_ec2.sh`
 - **Exit:** 1 (Unable to locate credentials)
-- **Result:** `0-work/scripts/.env` not on disk (gitignored; ephemeral across agent sessions). Cursor secrets list has no `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (only `GYPSY_S3_BUCKET` env var injected). Prior fetch runs used `.env` with `niruban_cursor` IAM keys — re-add to Cloud Agent secrets or recreate `.env`. `ensure_env.sh` added to rebuild `.env` from injected vars.
+- **Result:** Code on `main`; kickoff blocked because `0-work/scripts/.env` is not on disk (only `.env.example`). Branch merge did not remove it (gitignored). Need `.env` restored with `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` as used for prior fetch runs.
