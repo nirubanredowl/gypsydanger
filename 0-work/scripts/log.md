@@ -224,6 +224,3 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Result:** Code on `main`; kickoff blocked because `0-work/scripts/.env` is not on disk (only `.env.example`). Branch merge did not remove it (gitignored). Need `.env` restored with `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` as used for prior fetch runs.
 
 ## 2026-07-16 12:05 — Stage 3A credentials + SNS verified; parse relaunched
-- **Command:** `aws sts get-caller-identity`; `aws sns get-topic-attributes`; `aws/run_liteparse_parse.sh --async` (after worker bootstrap fixes)
-- **Exit:** 0
-- **Result:** Credentials OK (`niruban_cursor`, account `691811257790`). SNS ARN `arn:aws:sns:ap-southeast-2:691811257790:gypsy-danger-notify` confirmed — 1 email subscription (`niruban@redowl.ai`). First run `20260716T114608Z-parse` failed: pip upgrade on AL2023. Second run `20260716T115220Z-parse` failed: liteparse needs Python 3.10+ (AL2023 default 3.9). **Active run:** `20260716T115756Z-parse` — 20 workers running, liteparse 2.6.0 installed, shard workers started (pre-parse S3 scan in progress). Waiter: tmux `liteparse-waiter-20260716T115756Z-parse`. Progress: `s3://gypsy-danger-asx-691811257790/manifests/parse_progress.json`.
