@@ -4,6 +4,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+"$ROOT/0-work/scripts/aws/ensure_env.sh" || true
 ENV_FILE="$ROOT/0-work/scripts/.env"
 if [[ -f "$ENV_FILE" ]]; then
   set -a

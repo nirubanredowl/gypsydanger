@@ -219,6 +219,6 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Result:** Scripts `22_liteparse_document.py`, `23_liteparse_shard.py`, `25_build_parse_shards.py`, `26_parse_progress*.py`; AWS orchestration `run_liteparse_parse.sh` + waiter/SNS; 20 balanced shards / 22,573 docs in `data/parse_3a/`. Output prefix `parsed/{TICKER}/01_annual_reports/{documentKey}/liteparse/`. Status ping: `request_parse_progress.sh`.
 
 ## 2026-07-16 — Stage 3A kickoff (blocked — no AWS creds in agent)
-- **Command:** `aws/run_liteparse_on_ec2.sh`
+- **Command:** `aws/run_liteparse_on_ec2.sh`, `aws/ensure_env.sh`
 - **Exit:** 1 (Unable to locate credentials)
-- **Result:** Cloud agent has `GYPSY_S3_BUCKET` but no `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`. Kickoff script ready on `main`. Run from laptop or soak with creds: `0-work/scripts/aws/run_liteparse_on_ec2.sh`
+- **Result:** `0-work/scripts/.env` not on disk (gitignored; ephemeral across agent sessions). Cursor secrets list has no `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (only `GYPSY_S3_BUCKET` env var injected). Prior fetch runs used `.env` with `niruban_cursor` IAM keys — re-add to Cloud Agent secrets or recreate `.env`. `ensure_env.sh` added to rebuild `.env` from injected vars.
