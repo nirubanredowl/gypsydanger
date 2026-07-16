@@ -131,11 +131,14 @@ result = parser.parse(pdf_bytes)
 
 ### Outputs (per document)
 ```
-parsed/{corpus}/{TICKER}/{document_key}/
+parsed/{TICKER}/01_annual_reports/{document_key}/   # corpus folder from registry
+  meta.json
   liteparse/
-    document.md          # full markdown
-    document.json        # pages[], text_items summary, stats
-    manifest.json        # parser version, page_count, char_count, elapsed_s
+    pages/
+      0001/page.json              # text_items[] + page dimensions
+      0001/page.md                # page.markdown (tables as pipe syntax)
+    document.md                   # optional full-doc cache
+    manifest.json
 ```
 
 ### Script
@@ -201,172 +204,359 @@ parsed/{corpus}/{TICKER}/{document_key}/
 
 **Principle:** Folders hold blobs; **CSV catalogs** are the query layer. Every artefact joins back to `entities.csv` and per-ticker `{TICKER}_Announcements.csv` via stable keys.
 
+### Per-ticker layout + ordered corpus folders
+
+**Parse storage is per ticker.** Corpus types use a **fixed, numbered registry** — no ad-hoc folder names.
+
+#### `catalog/corpus_registry.csv` (master list — defines order)
+
+| `corpus_id` | `corpus_key` | `parse_folder` | `fetch_s3_folder` | `status` | Description |
+|------------:|--------------|----------------|-------------------|----------|-------------|
+| `01` | `annual_reports` | `01_annual_reports` | `annual_reports` | **active** | Loose annual reports (~22,560) |
+| `02` | `quarterly_reports` | `02_quarterly_reports` | `quarterly_reports` | planned | Quarterly activity / Appendix 4C |
+| `03` | `half_year_reports` | `03_half_year_reports` | `half_year_reports` | planned | Half-year / interim reports |
+| `04` | `full_year_accounts` | `04_full_year_accounts` | `full_year_accounts` | planned | Appendix 4E financial bundles |
+| `05` | `cfo_changes` | `05_cfo_changes` | `cfo_changes` | **active** | CFO appointment / resignation (~2,133) |
+| `06` | `ceo_changes` | `06_ceo_changes` | `ceo_changes` | planned | CEO / MD changes |
+| `07` | `appendix_4g` | `07_appendix_4g` | `appendix_4g` | planned | Corporate governance (~14k) |
+| `08` | `director_changes` | `08_director_changes` | `director_changes` | planned | Director appt / resign |
+
+Rules:
+- **`corpus_id`** is the sort key everywhere (catalogs, manifests, UI).
+- **`corpus_key`** is the stable snake_case identifier in CSV columns (never `annual` or `cfo` shorthand).
+- **`parse_folder`** = `{corpus_id zero-padded}_{corpus_key}` under each ticker.
+- **`fetch_s3_folder`** may differ from parse folder name during migration; registry maps fetch → parse.
+- New corpus types **append** with the next integer — never renumber existing IDs.
+
 ### Canonical identifiers
 
 | ID | Scope | Source | Example |
 |----|-------|--------|---------|
 | `ticker` | Entity | `entities.csv` | `CBA` |
 | `entity_xid` | Entity (API) | `entities.csv` | `362963398` |
-| `document_key` | **Document (global PK)** | announcements CSV `documentKey` | `2924-02860163-2A1552191` |
-| `corpus` | Report type | fetch filter / S3 prefix | `annual`, `cfo`, `appendix_4g` |
-| `page_num` | Page within doc | 1-based integer | `42` |
-| `page_id` | **Page (global PK)** | `{document_key}#p{page_num:04d}` | `2924-02860163-2A1552191#p0042` |
-| `table_id` | Table within doc | `{document_key}#t{seq:03d}` | `2924-02860163-2A1552191#t012` |
+| `corpus_id` | Report type | `corpus_registry.csv` | `01` |
+| `corpus_key` | Report type | `corpus_registry.csv` | `annual_reports` |
+| `document_key` | **Document (global PK)** | announcements `documentKey` | `2924-02860163-2A1552191` |
+| `page_num` | Page within doc | 1-based | `42` |
+| `page_id` | **Page (global PK)** | `{document_key}#p{page_num:04d}` | `2924-…#p0042` |
+| `statement_id` | Standalone statement | `{document_key}#s{type}` | `2924-…#sincome` |
 
-**Why `document_key` as folder name (not `TICKER_2024_…` slug):**
-- Already unique across the entire ASX corpus
-- Joins to announcements CSV without string parsing
-- Stable if you rename S3 PDF basename conventions
-- `ticker` + `corpus` are separate columns — no duplication in paths
+Document folder name = **`document_key`** (globally unique; joins announcements CSV directly).
 
 ### Existing layer (unchanged)
 
 ```
 data/
-  entities.csv                              # 1,838 companies — master entity registry
-  entities/{TICKER}/
-    {TICKER}_Announcements.csv              # all announcements — source metadata per filing
+  entities.csv
+  entities/{TICKER}/{TICKER}_Announcements.csv
 ```
 
-**Join:** `entities.csv.ticker` → `{TICKER}_Announcements.csv.ticker`  
-**Document discovery:** filter announcements rows by corpus rules → `document_key`
-
-### S3 layout after Stage 3
+### S3 layout — per ticker, ordered corpus
 
 ```
-s3://gypsy-danger-asx-691811257790/
+s3://bucket/
 
-  entities/{TICKER}/                        # FETCH (existing)
+  entities/{TICKER}/                          # FETCH (existing)
     {TICKER}_Announcements.csv
     annual_reports/{YYYY}_{documentKey}.pdf
     cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf
-    appendix_4g/{YYYY-MM-DD}_{documentKey}.pdf   # future
 
-  parsed/{corpus}/{TICKER}/{documentKey}/   # PARSE — one folder per document
-    source.json                             # snapshot of announcement row + s3_pdf_key
-    state.json                              # pipeline step state (3A–3C)
-    liteparse/                              # 3A
-      document.md
-      document.json
-      manifest.json
-    pages/                                  # 3B — page explosion lives here
-      manifest.json                         # page_count, dpi, empty-page flags
-      0001/
-        page.pdf
-        page.png
-        liteparse.md
-        liteparse.json
-      0002/
-        ...
-    pages/0042/                             # 3C — enrich outputs co-located per page
-        cleaned.md
-        tables.json
-        classify.json
-    enriched/                               # 3C merge — document-level
-      document.md
-      tables.json
-      manifest.json
+  parsed/{TICKER}/                            # PARSE root — one folder per company
+    01_annual_reports/
+      {documentKey}/
+        meta.json                             # document metadata (see below)
+        state.json                            # pipeline step status
+        liteparse/                            # 3A — page-native LiteParse output
+          pages/
+            0001/page.json
+            0001/page.md
+            0002/...
+          document.md                       # full-doc markdown (optional cache)
+          manifest.json
+        pages/                                # 3B — render assets
+          0001/page.pdf
+          0001/page.png
+        flash/                                # 3C — Gemini Flash (current scope)
+          pages/
+            0001/content.md                 # cleaned page (text + inline tables)
+          statements/                         # meaningful standalone tables
+            income_statement.json
+            balance_sheet.json
+            cash_flow.json
+            manifest.json                     # which statements found + page refs
+        usage.json                            # token cost for this document
 
-  catalog/                                  # QUERY LAYER — CSV registries (S3 + local mirror)
+    05_cfo_changes/
+      {documentKey}/...
+
+  catalog/                                    # QUERY LAYER
+    corpus_registry.csv
     documents.csv
     pages.csv
-    tables.csv
-    enrich_runs.csv
+    statements.csv                            # P&L, balance sheet, etc.
+    usage_runs.csv
+    usage_documents.csv
 ```
 
-**Parsed prefix pattern (for any CSV path column):**
-`s3://{bucket}/parsed/{corpus}/{ticker}/{document_key}/`
+**Parsed prefix:** `parsed/{ticker}/{parse_folder}/{document_key}/`  
+Example: `parsed/CBA/01_annual_reports/2924-02860163-2A1552191/`
 
-### Catalog CSVs (query layer)
+---
 
-These are **append/upsert** registries rebuilt or incrementally updated after each pipeline phase. Store on S3 (`catalog/`) and mirror locally (`data/catalog/`).
+## LiteParse output structure (native)
 
-#### `catalog/documents.csv` — one row per PDF
+LiteParse is **page-first**, but it does **not** emit typed blobs (`text` / `table` / `image`) as separate native objects. Understanding this shapes how we store and clean.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `document_key` | PK | `documentKey` from announcements |
-| `ticker` | FK | → `entities.csv` |
-| `entity_xid` | FK | → announcements row |
-| `corpus` | enum | `annual`, `cfo`, … |
-| `announcement_date` | ISO date | from announcements `date` |
-| `headline` | text | from announcements |
-| `announcement_types` | JSON | raw `announcementTypes` |
-| `s3_pdf_key` | path | source PDF in `entities/` |
-| `parsed_prefix` | path | `parsed/{corpus}/{ticker}/{document_key}/` |
-| `page_count` | int | after 3B |
-| `status_3a` | enum | `pending\|complete\|error` |
-| `status_3b` | enum | `pending\|complete\|error` |
-| `status_3c` | enum | `pending\|running\|complete\|error` |
-| `liteparse_chars` | int | |
-| `table_count` | int | after 3C merge |
-| `updated_at` | ISO | last registry write |
+```
+ParseResult
+├── text: str                         # full-document markdown (output_format=markdown)
+├── pages: ParsedPage[]
+│   ├── page_num: int
+│   ├── width, height: float          # PDF points
+│   ├── text: str                     # plain reconstructed text for this page
+│   ├── markdown: str                 # rendered markdown for this page
+│   └── text_items: TextItem[]        # atomic spatial text runs
+│       ├── text: str
+│       ├── x, y, width, height       # bounding box
+│       ├── font_name, font_size
+│       ├── confidence, rotation
+│       └── words: WordBox[]          # optional per-word bboxes (emit_word_boxes=True)
+└── images: ExtractedImage[]          # document-level extracted images
+    ├── page_num, width, height, format
+    └── (image bytes via screenshot API)
+```
 
-**Build from:** announcements CSV filtered by corpus + S3 head-object / parse manifests.
+**What this means:**
 
-#### `catalog/pages.csv` — one row per page (~1.15M annual + ~3k CFO)
+| User expectation | LiteParse reality |
+|----------------|-------------------|
+| Page → typed blobs (text/table/image) | Page → **`text_items[]`** (spatial runs) + **`markdown`** string |
+| Separate table objects | Tables appear as **markdown pipe syntax** inside `page.markdown` / `result.text` when `output_format=markdown` |
+| Per-page images | Image **placeholders** in markdown (`![](image_p1_0.png)`); bytes via `parser.screenshot()` |
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `page_id` | PK | `{document_key}#p{page_num:04d}` |
-| `document_key` | FK | → `documents.csv` |
-| `ticker` | denorm | for fast filter without join |
-| `corpus` | denorm | |
-| `page_num` | int | 1-based |
-| `width` | float | points |
-| `height` | float | |
-| `classify` | enum | `table_heavy\|text_heavy\|mixed\|skip` |
-| `status_clean` | enum | 3C-2 |
-| `status_tables` | enum | 3C-3 |
-| `path_page_pdf` | path | relative to `parsed_prefix` |
-| `path_page_png` | path | |
-| `path_liteparse_md` | path | |
-| `path_cleaned_md` | path | null until 3C |
-| `path_tables_json` | path | null if no tables |
-| `table_count` | int | tables on this page |
-| `updated_at` | ISO | |
+We store LiteParse **page-natively** under `liteparse/pages/{NNNN}/`:
 
-**Scale:** ~1.15M rows annual + ~3k CFO. CSV is ~200–400 MB — acceptable; at Stage 4 consider Parquet partition by `corpus`/`ticker`. Pages CSV is the main index for page-level work; **do not** list pages by walking S3.
+```json
+// liteparse/pages/0001/page.json
+{
+  "page_num": 1,
+  "width": 595.0,
+  "height": 842.0,
+  "text_item_count": 55,
+  "text_items": [
+    {
+      "text": "Life360",
+      "x": 72.1, "y": 54.3, "width": 120.0, "height": 14.2,
+      "font_name": "Arial-Bold", "font_size": 18.0,
+      "word_count": 1
+    }
+  ],
+  "images": [
+    { "ref": "image_p1_0", "page_num": 1 }
+  ]
+}
+```
 
-#### `catalog/tables.csv` — one row per extracted table
+```markdown
+<!-- liteparse/pages/0001/page.md — verbatim page.markdown -->
+![](image_p1_0.png)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `table_id` | PK | `{document_key}#t{seq:03d}` |
-| `document_key` | FK | |
-| `page_id` | FK | → `pages.csv` |
-| `ticker` | denorm | |
-| `corpus` | denorm | |
-| `page_num` | int | |
-| `statement_type` | enum | `income\|balance_sheet\|cash_flow\|notes\|other` |
-| `title` | text | table caption / heading |
-| `unit` | text | `$m`, `$000`, `%` |
-| `columns` | JSON | `["2024","2023"]` |
-| `row_count` | int | |
-| `path_tables_json` | path | pointer to full table blob |
-| `confidence` | float | model confidence |
-| `updated_at` | ISO | |
+# Life360
 
-Full table body stays in `pages/{n}/tables.json` or `enriched/tables.json`; this CSV is the **index** for cross-company queries.
+## ASX ANNOUNCEMENT
+...
+```
 
-### `source.json` (per document — joins to announcements)
+Optional derived layer (we build, not LiteParse): cluster `text_items` + markdown segments into **`blocks[]`** with `type: heading | text | markdown_table | image_ref` for Flash input. Stored under `liteparse/pages/{n}/blocks.json` if needed.
 
-Written once at parse start; frozen snapshot so later pipeline stages don't re-read announcements CSV:
+---
+
+## Document metadata (`meta.json`)
+
+Per document at `parsed/{TICKER}/{parse_folder}/{document_key}/meta.json`.
+
+| Field | Source | Example |
+|-------|--------|---------|
+| `document_key` | announcements | `2924-02860163-2A1552191` |
+| `ticker`, `entity_xid` | announcements / entities | `CBA` |
+| `corpus_id`, `corpus_key` | registry | `01`, `annual_reports` |
+| `published_date` | announcements `date` (announcement date) | `2024-09-25` |
+| `headline` | announcements | `Annual Report to shareholders` |
+| `announcement_types` | announcements | `["Annual Report", …]` |
+| `s3_pdf_key` | fetch path | `entities/CBA/annual_reports/…` |
+| `reporting_period` | **derived** (Flash or rules) | see below |
+| `page_count` | LiteParse | `56` |
+| `liteparse_version` | parser | `2.4.0` |
+
+```json
+{
+  "reporting_period": {
+    "label": "FY2024",
+    "end_date": "2024-06-30",
+    "start_date": "2023-07-01",
+    "basis": "flash_extract"
+  }
+}
+```
+
+**Derivation order:** (1) headline regex (`FY24`, `year ended 30 June 2024`); (2) Flash pass on cover + contents pages; (3) null + flag for manual review. `published_date` is always the ASX announcement date; `reporting_period.end_date` is the financial year end (distinct fields).
+
+---
+
+## After Flash clean — page content + standalone statements
+
+**Current pipeline scope: Gemini Flash only.** Mastra orchestration is specified separately (§ Mastra — deferred); not built in the parsing pilot.
+
+### Per-page (`flash/pages/{NNNN}/`)
+
+| File | Contents |
+|------|----------|
+| `content.md` | Cleaned reading-order text; tables as markdown blocks inline |
+| `content.json` | Optional structured blocks if Flash returns JSON |
+
+### Document-level statements (`flash/statements/`)
+
+Meaningful financial tables **promoted** from pages — not every markdown table, only statement-level:
+
+| File | `statement_type` |
+|------|------------------|
+| `income_statement.json` | `income` |
+| `balance_sheet.json` | `balance_sheet` |
+| `cash_flow.json` | `cash_flow` |
+| `changes_in_equity.json` | `equity` |
+| `notes.json` | `notes` (optional aggregate) |
+| `manifest.json` | which statements exist, source `page_id`s, confidence |
+
+```json
+// flash/statements/income_statement.json
+{
+  "statement_id": "2924-02860163-2A1552191#sincome",
+  "statement_type": "income",
+  "title": "Consolidated statement of comprehensive income",
+  "unit": "$m",
+  "currency": "AUD",
+  "columns": ["2024", "2023"],
+  "rows": [
+    { "label": "Revenue", "values": [98234, 89102] }
+  ],
+  "source_page_ids": ["2924-02860163-2A1552191#p0012", "…#p0013"],
+  "confidence": 0.91
+}
+```
+
+Indexed in `catalog/statements.csv` for cross-company queries (revenue time-series, etc.).
+
+---
+
+## Token usage tracking
+
+At millions of pages, cost tracking is mandatory. Record at **run** and **document** granularity.
+
+### `catalog/usage_runs.csv` — one row per pipeline run / batch
+
+| Column | Description |
+|--------|-------------|
+| `run_id` | e.g. `20260716T120000Z-flash-clean` |
+| `phase` | `3a_liteparse` \| `3b_split` \| `3c_flash_page` \| `3c_flash_statements` |
+| `model` | `gemini-2.5-flash`, `none` (LiteParse is local) |
+| `corpus_id` | or `all` |
+| `documents_in` | count |
+| `pages_in` | count |
+| `input_tokens` | sum |
+| `output_tokens` | sum |
+| `cost_usd` | computed from model price table |
+| `started_at`, `finished_at` | ISO |
+| `status` | `running` \| `complete` \| `error` |
+
+### `catalog/usage_documents.csv` — one row per document × phase
+
+| Column | Description |
+|--------|-------------|
+| `run_id` | FK → usage_runs |
+| `document_key` | FK → documents |
+| `ticker`, `corpus_id` | denorm |
+| `phase` | |
+| `model` | |
+| `pages_processed` | |
+| `input_tokens`, `output_tokens`, `cost_usd` | |
+| `updated_at` | |
+
+### Per-document `usage.json`
+
+Roll-up cached on the document folder for quick inspection:
 
 ```json
 {
   "document_key": "2924-02860163-2A1552191",
-  "ticker": "CBA",
-  "entity_xid": "362963398",
-  "corpus": "annual",
-  "announcement_date": "2024-09-25T00:00:00+10:00",
-  "headline": "Annual Report to shareholders",
-  "announcement_types": ["Annual Report", "Full Year Accounts"],
-  "s3_pdf_key": "entities/CBA/annual_reports/2024_2924-02860163-2A1552191.pdf",
-  "file_size": "8456123",
-  "is_price_sensitive": false
+  "phases": {
+    "3c_flash_page": { "input_tokens": 12400, "output_tokens": 3200, "cost_usd": 0.0042 },
+    "3c_flash_statements": { "input_tokens": 8200, "output_tokens": 1100, "cost_usd": 0.0028 }
+  },
+  "total_cost_usd": 0.0070
 }
 ```
+
+LiteParse (3A/3B) records `cost_usd: 0` but logs `elapsed_s` and `cpu_s` in `usage_runs` for capacity planning.
+
+---
+
+## Mastra — deferred (separate spec)
+
+**Not in current parsing build.** When we add Mastra for durable multi-step enrichment:
+
+- Orchestrates the same sub-steps as § After Flash clean (classify → clean → extract statements → merge)
+- Adds workflow state, retries, human review gates
+- Token usage flows into the **same** `usage_runs.csv` / `usage_documents.csv` with `orchestrator=mastra`
+- Spec will live in `0-work/plans/stage3-mastra-enrichment.md` when scoped
+
+For now: **sequential Python runner + `state.json`** per document, Gemini Flash direct API.
+
+---
+
+### Catalog CSVs (query layer)
+
+#### `catalog/documents.csv`
+
+| Column | Notes |
+|--------|-------|
+| `document_key` | PK |
+| `ticker`, `entity_xid` | FK |
+| `corpus_id`, `corpus_key` | from registry (not free-text) |
+| `published_date`, `headline`, `announcement_types` | from announcements |
+| `reporting_period_label`, `reporting_period_end` | from `meta.json` |
+| `s3_pdf_key`, `parsed_prefix` | paths |
+| `page_count` | |
+| `status_3a`, `status_3b`, `status_3c_flash` | pipeline |
+| `statement_types_found` | JSON array e.g. `["income","balance_sheet"]` |
+| `flash_cost_usd` | roll-up |
+| `updated_at` | |
+
+#### `catalog/pages.csv` (~1.15M rows)
+
+| Column | Notes |
+|--------|-------|
+| `page_id` | PK |
+| `document_key`, `ticker`, `corpus_id` | FK / denorm |
+| `page_num` | |
+| `path_liteparse_json`, `path_liteparse_md` | |
+| `path_page_png` | |
+| `path_flash_content_md` | null until Flash |
+| `has_tables` | bool |
+| `flash_input_tokens`, `flash_output_tokens` | per-page Flash cost |
+| `updated_at` | |
+
+#### `catalog/statements.csv`
+
+| Column | Notes |
+|--------|-------|
+| `statement_id` | PK |
+| `document_key`, `ticker`, `corpus_id` | |
+| `statement_type` | `income`, `balance_sheet`, `cash_flow`, … |
+| `reporting_period_label` | denorm from meta |
+| `unit`, `currency`, `columns` | JSON |
+| `row_count`, `confidence` | |
+| `path_statement_json` | |
+| `source_page_ids` | JSON array |
 
 ### Traceability chain
 
@@ -374,68 +564,64 @@ Written once at parse start; frozen snapshot so later pipeline stages don't re-r
 entities.csv
   └─ ticker
        └─ entities/{TICKER}/{TICKER}_Announcements.csv
-            └─ document_key  (filter by corpus rules)
-                 ├─ entities/{TICKER}/{corpus}/…_{documentKey}.pdf     [fetch]
-                 └─ parsed/{corpus}/{TICKER}/{documentKey}/            [parse]
-                      ├─ liteparse/document.md                         [3A]
-                      ├─ pages/{page_num}/…                            [3B]
-                      └─ enriched/document.md + tables.json            [3C]
+            └─ document_key + corpus_registry filter
+                 ├─ entities/{TICKER}/{fetch_s3_folder}/…pdf
+                 └─ parsed/{TICKER}/{parse_folder}/{document_key}/
+                      ├─ meta.json
+                      ├─ liteparse/pages/{n}/page.json + page.md
+                      ├─ flash/pages/{n}/content.md
+                      └─ flash/statements/*.json
 
-catalog/documents.csv  ← upsert from source.json + state.json
-catalog/pages.csv      ← upsert from pages/manifest.json + per-page state
-catalog/tables.csv     ← upsert from enriched/tables.json
+catalog/documents.csv, pages.csv, statements.csv, usage_*.csv
 ```
 
-### Example queries (SQL-style, against CSVs)
+### Example queries
 
 ```sql
--- All pages with tables for CBA annual reports
-SELECT p.page_id, p.page_num, p.table_count, p.path_cleaned_md
-FROM pages p
-JOIN documents d ON p.document_key = d.document_key
-WHERE d.ticker = 'CBA' AND d.corpus = 'annual' AND p.table_count > 0;
+-- CBA FY2024 income statement
+SELECT s.*, d.reporting_period_label
+FROM statements s
+JOIN documents d ON s.document_key = d.document_key
+WHERE d.ticker = 'CBA' AND s.statement_type = 'income'
+  AND d.reporting_period_label = 'FY2024';
 
--- Revenue line items across companies (Stage 4)
-SELECT t.ticker, t.announcement_date, t.title, t.path_tables_json
-FROM tables t
-WHERE t.statement_type = 'income' AND t.title ILIKE '%revenue%';
+-- Token spend by corpus last run
+SELECT corpus_id, phase, SUM(cost_usd), SUM(input_tokens)
+FROM usage_documents
+WHERE run_id = '20260716T120000Z-flash-clean'
+GROUP BY corpus_id, phase;
 
--- Pipeline progress
-SELECT corpus, status_3c, COUNT(*) FROM documents GROUP BY corpus, status_3c;
+-- Pages awaiting Flash
+SELECT COUNT(*) FROM pages
+WHERE path_flash_content_md IS NULL
+  AND corpus_id = '01';
 ```
 
 ### Phase → artefact map
 
-| Phase | Writes | Updates catalog |
-|-------|--------|-----------------|
-| Fetch | `entities/…/{corpus}/…pdf`, announcements CSV | `documents.csv` row (status pending) |
-| 3A LiteParse | `…/liteparse/*` | `documents.status_3a`, char counts |
-| 3B Split | `…/pages/{NNNN}/*` | `documents.page_count`, `pages.csv` bulk insert |
-| 3C Classify | `…/pages/{n}/classify.json` | `pages.classify` |
-| 3C Clean | `…/pages/{n}/cleaned.md` | `pages.status_clean`, paths |
-| 3C Tables | `…/pages/{n}/tables.json` | `pages.table_count`, `tables.csv` |
-| 3C Merge | `…/enriched/*` | `documents.status_3c`, `documents.table_count` |
+| Phase | Writes | Catalog update |
+|-------|--------|----------------|
+| Fetch | `entities/…` PDF | `documents.csv` (pending) |
+| 3A LiteParse | `liteparse/pages/{n}/page.json`, `page.md` | `documents.status_3a`, `meta.json` |
+| 3B Split | `pages/{n}/page.pdf`, `page.png` | `documents.page_count`, `pages.csv` |
+| 3C Flash page | `flash/pages/{n}/content.md` | `pages.path_flash_content_md`, usage |
+| 3C Flash statements | `flash/statements/*.json` | `statements.csv`, `documents.statement_types_found` |
 
-### Scale estimates (page explosion)
+### Scale estimates
 
-| Corpus | Docs | Avg pages | Total pages | Page folders |
-|--------|-----:|----------:|------------:|-------------:|
-| Annual | 22,560 | ~50 | ~1,150,000 | ~1.15M |
-| CFO | 2,133 | ~1.4 | ~3,000 | ~3k |
-| **Total** | ~24,700 | | **~1.15M** | |
+| corpus_id | Docs | Avg pages | Total pages |
+|----------:|-----:|----------:|------------:|
+| 01 | 22,560 | ~50 | ~1,150,000 |
+| 05 | 2,133 | ~1.4 | ~3,000 |
 
-At ~5 files/page (pdf, png, md, json, cleaned.md) → **~6M objects** under `pages/`. Catalog CSVs avoid listing S3 for queries.
+~6M files under page folders. **Always query via `catalog/*.csv`**, never walk S3.
 
-### Local dev mirror (pilot only)
+### Local dev mirror
 
 ```
-data/
-  catalog/                    # mirror of s3 catalog/*.csv
-  parsed/                     # optional local cache for ≤100 pilot docs
-    annual/CBA/{documentKey}/...
+data/catalog/           # mirror of s3 catalog/
+data/parsed/{TICKER}/   # pilot tickers only
 ```
-
-Full corpus stays S3-canonical; local only for development.
 
 ---
 

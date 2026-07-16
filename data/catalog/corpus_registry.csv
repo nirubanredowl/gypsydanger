@@ -1,0 +1,9 @@
+corpus_id,corpus_key,parse_folder,fetch_s3_folder,status,description,documents_est
+01,annual_reports,01_annual_reports,annual_reports,active,Loose annual reports,22560
+02,quarterly_reports,02_quarterly_reports,quarterly_reports,planned,Quarterly activity / Appendix 4C,
+03,half_year_reports,03_half_year_reports,half_year_reports,planned,Half-year / interim reports,
+04,full_year_accounts,04_full_year_accounts,full_year_accounts,planned,Appendix 4E financial bundles,
+05,cfo_changes,05_cfo_changes,cfo_changes,active,CFO appointment / resignation,2133
+06,ceo_changes,06_ceo_changes,ceo_changes,planned,CEO / MD changes,
+07,appendix_4g,07_appendix_4g,appendix_4g,planned,Corporate governance statements,14346
+08,director_changes,08_director_changes,director_changes,planned,Director appointment / resignation,
