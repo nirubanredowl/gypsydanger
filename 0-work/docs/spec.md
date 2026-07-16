@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Fetch complete** — ~22,560 annual reports + 2,133 CFO change PDFs in S3. **Parse pilot complete** — 100-doc comparison in `data/parse-sample-corpus/` (LiteParse 100/100). **Stage 3A running** — run `20260716T123530Z-parse` (retry after JSON set bug fix).
+**Current state:** **Fetch complete**. **Stage 3A partial** — 2,926/22,573 annual reports parsed (run `20260716T123530Z-parse`, 0 failures). **Continuation run:** `20260716T140917Z-parse` (waiter bug fixed; skips existing).
 
-**Next action:** Monitor Stage 3A via `request_parse_progress.sh` or SNS. Expect completion email when 22,573 docs parsed.
+**Next action:** Monitor via `request_parse_progress.sh` or SNS. Expect **PASS** email when ~22,573 docs done.
 
 **Constraints**
 

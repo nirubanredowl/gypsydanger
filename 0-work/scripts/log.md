@@ -232,3 +232,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** SNS completion email; `manifests/parse/20260716T115756Z-parse/summary.json`
 - **Exit:** 0 (orchestration) / job failed
 - **Result:** 0 parsed, 2,080 failed. Cause: `announcement_types` set not JSON-serializable in `meta.json`. Fixed in `22_liteparse_document.py`. Relaunched `20260716T123530Z-parse`.
+
+## 2026-07-16 14:07 — Stage 3A run 20260716T123530Z-parse DONE (partial — waiter bug)
+- **Command:** SNS completion email; `manifests/parse/20260716T123530Z-parse/summary.json`
+- **Exit:** 0 (orchestration) / `passed: false`
+- **Result:** **2,926 parsed, 281,481 pages, 0 failed** (fix worked). Only ~13% of 22,573 corpus — waiter counted workers done on first progress upload (`complete=false`), terminated EC2 early. Fixed `worker_done()` in `liteparse_wait_and_notify.sh`. Relaunch will skip existing manifests via `skip_if_exists`.
