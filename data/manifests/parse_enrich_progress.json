@@ -1,0 +1,45 @@
+{
+  "updated_at": "2026-07-17T00:12:00Z",
+  "corpus_key": "annual_reports",
+  "corpus_id": "01",
+  "current_phase": "3b_split",
+  "3a_status": "complete",
+  "3a_run_id": "20260716T140917Z-parse",
+  "3a_prior_run_ids": ["20260716T115756Z-parse", "20260716T123530Z-parse"],
+  "documents_total_corpus": 22573,
+  "3a_complete": 22570,
+  "3a_deferred": 3,
+  "3a_failed_fetch": 3,
+  "3b_total": 22570,
+  "3b_complete": 0,
+  "3c_complete": 0,
+  "pages_3a_total_est": 1831727,
+  "pages_enriched": 0,
+  "errors": 0,
+  "token_usage": {
+    "input": 0,
+    "output": 0
+  },
+  "s3_parsed_prefix": "s3://gypsy-danger-asx-691811257790/parsed/",
+  "s3_entities_prefix": "s3://gypsy-danger-asx-691811257790/entities/",
+  "s3_corpus_registry": "s3://gypsy-danger-asx-691811257790/catalog/corpus_registry.csv",
+  "s3_parse_shards": "s3://gypsy-danger-asx-691811257790/parse_3a/shards/20workers/",
+  "s3_3a_summary": "s3://gypsy-danger-asx-691811257790/manifests/parse/20260716T140917Z-parse/summary.json",
+  "s3_deferred_pdfs": "s3://gypsy-danger-asx-691811257790/manifests/parse/unavailable_cdn_pdfs.json",
+  "data_cleanup_backlog": "0-work/docs/data-cleanup-backlog.md",
+  "ready_for_3b_data": true,
+  "ready_for_3b_code": false,
+  "implementation_gaps_3b": [
+    "24_split_pdf_pages.py (split PDF, render PNG, optional pages/ layout)",
+    "requirements-parse.txt: add pymupdf or pypdf + pillow for render",
+    "3B shard worker + EC2 orchestration (mirror 23_liteparse_shard / run_liteparse_parse)"
+  ],
+  "3a_artifact_checklist": {
+    "entities_pdf": true,
+    "parsed_meta_json": true,
+    "parsed_state_json": true,
+    "liteparse_pages": true,
+    "liteparse_document_md": true,
+    "pages_split_output": false
+  }
+}

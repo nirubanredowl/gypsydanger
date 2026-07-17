@@ -247,3 +247,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** (doc update)
 - **Exit:** 0
 - **Result:** Logged deferred cleanup in `0-work/docs/data-cleanup-backlog.md`; spec agent brief points to backlog instead of inline follow-up.
+
+## 2026-07-17 — Stage 3 pipeline manifest → 3B gate
+- **Command:** `aws s3 cp data/manifests/parse_enrich_progress.json …`; updated `manifests/parse_progress.json`, `parse_3a/manifest.json`
+- **Exit:** 0
+- **Result:** `parse_enrich_progress.json`: `3a_complete=22570`, `current_phase=3b_split`, `ready_for_3b_data=true`. Verified sample doc has meta/state/liteparse/pages + source PDF. **Gaps:** `24_split_pdf_pages.py`, pymupdf/pillow deps, 3B EC2 orchestration.

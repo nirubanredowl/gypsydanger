@@ -8,6 +8,11 @@
   "annual_filter": "loose",
   "tickers_with_reports": 1793,
   "documents_total": 22573,
+  "status_3a": "complete",
+  "3a_run_id": "20260716T140917Z-parse",
+  "documents_3a_complete": 22570,
+  "documents_deferred": 3,
+  "next_phase": "3b_split",
   "shards": [
     {
       "worker_id": "00",

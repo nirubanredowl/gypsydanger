@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Stage 3A complete** — 22,570/22,573 annual reports parsed in S3 (`20260716T140917Z-parse`). **3 documentKeys** deferred for data cleanup (CDN empty); see [`0-work/docs/data-cleanup-backlog.md`](data-cleanup-backlog.md).
+**Current state:** **Stage 3A complete** (22,570 docs parsed; 3 deferred — see data cleanup backlog). **S3 gate:** `manifests/parse_enrich_progress.json` → `current_phase: 3b_split`, `ready_for_3b_data: true`. **3B code not built yet** (`24_split_pdf_pages.py`, orchestration).
 
-**Next action:** Stage 3B page split / 3C Flash. Data cleanup backlog is out of band until promoted.
+**Next action:** Implement 3B page split, then run against annual corpus using existing `parse_3a` shards + `parsed/` inputs.
 
 **Constraints**
 
