@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Stage 3A complete** (22,570 docs parsed; 3 deferred — see data cleanup backlog). **S3 gate:** `manifests/parse_enrich_progress.json` → `current_phase: 3b_split`, `ready_for_3b_data: true`. **3B code not built yet** (`24_split_pdf_pages.py`, orchestration).
+**Current state:** **Stage 3A complete** (22,570 parsed; 3 deferred). **Stage 3B tooling ready** — `24_split_pdf_pages.py`, `25_split_shard.py`, `aws/run_split_pages.sh` (+ EC2 launch/waiter). Smoke-tested one doc on S3.
 
-**Next action:** Implement 3B page split, then run against annual corpus using existing `parse_3a` shards + `parsed/` inputs.
+**Next action:** Run Stage 3B at scale: `0-work/scripts/aws/run_split_pages.sh --async`. Then Stage 3C Flash.
 
 **Constraints**
 

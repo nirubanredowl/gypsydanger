@@ -252,3 +252,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `aws s3 cp data/manifests/parse_enrich_progress.json …`; updated `manifests/parse_progress.json`, `parse_3a/manifest.json`
 - **Exit:** 0
 - **Result:** `parse_enrich_progress.json`: `3a_complete=22570`, `current_phase=3b_split`, `ready_for_3b_data=true`. Verified sample doc has meta/state/liteparse/pages + source PDF. **Gaps:** `24_split_pdf_pages.py`, pymupdf/pillow deps, 3B EC2 orchestration.
+
+## 2026-07-17 — Stage 3B page split implementation
+- **Command:** `python3 24_split_pdf_pages.py` (smoke 14D doc); added `25_split_shard.py`, `aws/run_split_pages.sh`, `launch_split_worker.sh`, `split_wait_and_notify.sh`
+- **Exit:** 0
+- **Result:** Per-page `pages/{NNNN}/page.pdf`, `page.png`, `liteparse.json|md`; updates `state.json` `3b_split`. EC2 user-data: Python 3.11 + `requirements-parse.txt` (liteparse + pymupdf), same `parse_3a` shards. Launch: `run_split_pages.sh --async`.

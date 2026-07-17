@@ -28,12 +28,15 @@
   "s3_deferred_pdfs": "s3://gypsy-danger-asx-691811257790/manifests/parse/unavailable_cdn_pdfs.json",
   "data_cleanup_backlog": "0-work/docs/data-cleanup-backlog.md",
   "ready_for_3b_data": true,
-  "ready_for_3b_code": false,
-  "implementation_gaps_3b": [
-    "24_split_pdf_pages.py (split PDF, render PNG, optional pages/ layout)",
-    "requirements-parse.txt: add pymupdf or pypdf + pillow for render",
-    "3B shard worker + EC2 orchestration (mirror 23_liteparse_shard / run_liteparse_parse)"
-  ],
+  "ready_for_3b_code": true,
+  "implementation_gaps_3b": [],
+  "3b_scripts": {
+    "document": "0-work/scripts/24_split_pdf_pages.py",
+    "shard": "0-work/scripts/25_split_shard.py",
+    "orchestrator": "0-work/scripts/aws/run_split_pages.sh",
+    "launch_worker": "0-work/scripts/aws/launch_split_worker.sh",
+    "waiter": "0-work/scripts/aws/split_wait_and_notify.sh"
+  },
   "3a_artifact_checklist": {
     "entities_pdf": true,
     "parsed_meta_json": true,

@@ -246,6 +246,11 @@ def s3_liteparse_manifest_key(ticker: str, corpus_key: str, document_key: str) -
     return f"{s3_parsed_doc_prefix(ticker, corpus_key, document_key)}/liteparse/manifest.json"
 
 
+def s3_pages_manifest_key(ticker: str, corpus_key: str, document_key: str) -> str:
+    """Guard key — skip 3B split when this object exists."""
+    return f"{s3_parsed_doc_prefix(ticker, corpus_key, document_key)}/pages/manifest.json"
+
+
 def cfo_change_tier(row: dict[str, str]) -> str | None:
     """Return tier ``A`` or ``B`` when row is a CFO change candidate, else None."""
     headline = (row.get("headline") or "").strip()
