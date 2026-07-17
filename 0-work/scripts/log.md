@@ -257,3 +257,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `python3 24_split_pdf_pages.py` (smoke 14D doc); added `25_split_shard.py`, `aws/run_split_pages.sh`, `launch_split_worker.sh`, `split_wait_and_notify.sh`
 - **Exit:** 0
 - **Result:** Per-page `pages/{NNNN}/page.pdf`, `page.png`, `liteparse.json|md`; updates `state.json` `3b_split`. EC2 user-data: Python 3.11 + `requirements-parse.txt` (liteparse + pymupdf), same `parse_3a` shards. Launch: `run_split_pages.sh --async`.
+
+## 2026-07-17 03:54 — Stage 3B full corpus kickoff
+- **Command:** `aws/run_split_pages.sh --async`
+- **Exit:** 0
+- **Result:** Run `20260717T035425Z-split` — 20 workers launched. Targets 22,570 docs. Waiter tmux `split-waiter-20260717T035425Z-split`. Progress `manifests/split_progress.json`.
