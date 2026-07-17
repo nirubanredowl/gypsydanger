@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Stage 3A complete** — 22,570/22,573 annual reports parsed in S3 (`20260716T140917Z-parse`); **3 documentKeys** have no CDN PDF (`manifests/parse/unavailable_cdn_pdfs.json`). SIX 2015 has a second annual report already parsed.
+**Current state:** **Stage 3A complete** — 22,570/22,573 annual reports parsed in S3 (`20260716T140917Z-parse`). **3 documentKeys** deferred for data cleanup (CDN empty); see [`0-work/docs/data-cleanup-backlog.md`](data-cleanup-backlog.md).
 
-**Next action:** Stage 3B page split / 3C Flash, or manual PDF sourcing for the 3 unavailable keys (CCR 2023, REZ 2014, SIX 2015-09-30).
+**Next action:** Stage 3B page split / 3C Flash. Data cleanup backlog is out of band until promoted.
 
 **Constraints**
 

@@ -242,3 +242,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `python3 13_retry_failed_annual_reports.py --from-json … --run-id parse-missing-pdf-retry`
 - **Exit:** 1
 - **Result:** Refetch failed for SIX/CCR/REZ documentKeys — Markit CDN returns `[]` (not PDF) from agent + soak EC2. No reparse possible. Manifest: `data/parse_3a/unavailable_cdn_pdfs.json` → `s3://…/manifests/parse/unavailable_cdn_pdfs.json`. SIX 2015: alternate annual report `2995-01679603-6A740324` already in S3 and parsed.
+
+## 2026-07-17 — Data cleanup backlog (3 CDN gaps)
+- **Command:** (doc update)
+- **Exit:** 0
+- **Result:** Logged deferred cleanup in `0-work/docs/data-cleanup-backlog.md`; spec agent brief points to backlog instead of inline follow-up.

@@ -1,6 +1,8 @@
 {
   "phase": "3a_liteparse",
-  "updated_at": "2026-07-16T23:50:00Z",
+  "status": "deferred_data_cleanup",
+  "backlog_doc": "0-work/docs/data-cleanup-backlog.md",
+  "updated_at": "2026-07-17T00:00:00Z",
   "reason": "Markit CDN returns HTTP 200 with body [] (not a PDF) for these documentKeys",
   "retry_run_id": "parse-missing-pdf-retry",
   "documents": [
