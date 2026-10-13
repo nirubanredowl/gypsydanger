@@ -422,7 +422,7 @@ Use `--output-dir` on either script to mirror layout under `data/parsed/` withou
 
 ## Migrating corpus S3 → Neon
 
-**Script:** `27_migrate_object_store.py`
+**Scripts:** `27_migrate_object_store.py` (serial copy). For a **manifest + Cloudflare/Vercel queue worker** design, see [`../plans/neon-corpus-migration-queue-workers.md`](../plans/neon-corpus-migration-queue-workers.md).
 
 ```bash
 # AWS creds for source; Neon creds from neon env pull in the same shell
@@ -445,6 +445,7 @@ After cutover, point workers at Neon env vars only and retire EC2→S3 sync wher
 
 | Date | Change |
 |------|--------|
+| 2026-10-13 | Link queue-worker migration plan (manifest checklist on Neon) |
 | 2026-10-13 | Document Stages 0–2: entity normalisation, Markit index pagination, entity_xid resolution, local vs S3 fetch paths, annual filters |
 | 2026-10-13 | Initial living doc; `00_object_store.py`; 3A/3B/fetch use boto3; `27_migrate_object_store.py`; Neon bucket `asx-artifacts` |
 

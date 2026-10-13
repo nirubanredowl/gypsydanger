@@ -263,6 +263,11 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Exit:** 0
 - **Result:** Run `20260717T035425Z-split` — 20 workers launched. Targets 22,570 docs. Waiter tmux `split-waiter-20260717T035425Z-split`. Progress `manifests/split_progress.json`.
 
+## 2026-10-13 08:45 — Neon migration queue-worker plan (draft)
+- **Command:** (doc) `0-work/plans/neon-corpus-migration-queue-workers.md`
+- **Exit:** n/a
+- **Result:** Draft Track B: inventory → Postgres/JSONL manifest on Neon → CF/Vercel queue workers → completion gate; linked from neon-corpus-migration.md.
+
 ## 2026-10-13 08:40 — extraction-pipeline.md Stages 0–2 detail
 - **Command:** (doc) expanded `0-work/docs/extraction-pipeline.md`
 - **Exit:** n/a

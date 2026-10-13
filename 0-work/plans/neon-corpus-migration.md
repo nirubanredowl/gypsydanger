@@ -30,7 +30,16 @@ depends_on:
 
 ---
 
-## Phase 1 — Bulk copy
+## Migration tracks
+
+| Track | When to use | Doc |
+|-------|-------------|-----|
+| **A — Serial copy** | Pilot prefix, emergency, single VM | Phase 1 below (`27_migrate_object_store.py`) |
+| **B — Manifest + queue workers** | Full corpus, resumable, observable | [`neon-corpus-migration-queue-workers.md`](neon-corpus-migration-queue-workers.md) |
+
+---
+
+## Phase 1 — Bulk copy (Track A)
 
 Run from a machine with **both** AWS read access to the legacy bucket and Neon write credentials:
 
