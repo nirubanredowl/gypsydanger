@@ -422,7 +422,7 @@ Use `--output-dir` on either script to mirror layout under `data/parsed/` withou
 
 ## Migrating corpus S3 → Neon
 
-**Scripts:** `27_migrate_object_store.py` (serial copy). For a **manifest + Cloudflare/Vercel queue worker** design, see [`../plans/neon-corpus-migration-queue-workers.md`](../plans/neon-corpus-migration-queue-workers.md).
+**Scripts:** `27_migrate_object_store.py` (serial object copy). Preferred corpus move is catalog-first: ticker, document type, and document on Neon Postgres, then a temp manifest that copies **source PDFs only**. See [`../plans/neon-corpus-migration-queue-workers.md`](../plans/neon-corpus-migration-queue-workers.md).
 
 ```bash
 # AWS creds for source; Neon creds from neon env pull in the same shell

@@ -263,6 +263,11 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Exit:** 0
 - **Result:** Run `20260717T035425Z-split` — 20 workers launched. Targets 22,570 docs. Waiter tmux `split-waiter-20260717T035425Z-split`. Progress `manifests/split_progress.json`.
 
+## 2026-10-13 11:40 — Migration plan reworked around document catalog
+- **Command:** (doc) rewrote `0-work/plans/neon-corpus-migration-queue-workers.md`
+- **Exit:** n/a
+- **Result:** Permanent `catalog` (ticker, document_type, document) then temp `migration.manifest` per source PDF. Parse, S3 catalog prefix, and scripts are out of the copy.
+
 ## 2026-10-13 08:45 — Neon migration queue-worker plan (draft)
 - **Command:** (doc) `0-work/plans/neon-corpus-migration-queue-workers.md`
 - **Exit:** n/a

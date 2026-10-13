@@ -1,228 +1,223 @@
 ---
-title: Neon corpus migration — manifest + queue workers (alternative)
+title: Neon corpus migration — catalog first, then document manifest
 type: plan
 status: draft
 depends_on:
   - neon-corpus-migration.md
   - extraction-pipeline.md
-  - neon.ts (asx-artifacts bucket, optional Postgres)
-tags: [neon, migration, cloudflare, vercel, queue, manifest]
+  - neon.ts (asx-artifacts + Postgres)
+tags: [neon, migration, postgres, manifest, documents]
 ---
 
-# Neon corpus migration — manifest checklist + edge workers
+# Neon corpus migration — structure, then document manifest
 
-**Status:** Draft idea — alternative to **Phase 1** in [`neon-corpus-migration.md`](neon-corpus-migration.md) (single-machine `27_migrate_object_store.py`).
+**Status:** Draft. Replaces the earlier “copy every S3 object” checklist.
 
-**Goal:** Treat migration as a **durable, resumable job**: inventory every object on AWS S3 → store a **migration manifest / checklist** on Neon → copy objects **one-by-one** via serverless workers → mark each row complete → cut over when the checklist is done.
-
-Object **keys stay identical**; only bucket/host changes (`asx-artifacts` on Neon).
-
----
-
-## Why not only one serial Python process?
-
-| Concern | Serial `27_migrate_*` | Manifest + workers |
-|---------|----------------------|---------------------|
-| Runtime | Days; fragile if VM dies | Resumable from last ack |
-| Throughput | One TCP stream | Tunable concurrency (with rate limits) |
-| Observability | Run summary JSON | Per-object state + dashboards |
-| Verification | Size skip only | ETag/checksum + explicit `complete` |
-| Cost | One big EC2 | Pay per message + small worker CPU |
-
-A **hybrid** is fine: inventory + manifest on Neon first, then workers (or a fleet of EC2 shards) drain the queue.
+**Goal:** Put the **company / document catalog** on Neon Postgres, then copy **source PDFs only** into Neon Object Storage (`asx-artifacts`), tracked by a **temporary migration manifest**. Derived parse output, the S3 `catalog/` prefix, and worker `scripts/` stay on AWS.
 
 ---
 
-## Architecture (target)
+## Verdict on the proposed shape
+
+The shape is right:
+
+1. Neon structure first (bucket + permanent tables).
+2. A migration manifest that marks each **document** complete.
+3. Do not migrate `parsed/`, `catalog/`, or `scripts/`.
+
+Two adjustments keep it correct:
+
+- **Ticker, document type, and document are the permanent catalog**, not the temp database. They replace `catalog/*.csv` and are what later stages query. The temp piece is only the manifest (and its run metadata). Put that in schema `migration` on the **same** GypsyDanger database so it can foreign-key to `document` and be dropped after cutover. A second Neon project would duplicate company and document rows.
+- **Document type is the storage corpus** (`annual_reports`, `cfo_changes`, …), one per PDF path. Markit `announcementTypes` is a separate multi-label list on the filing (Annual Report and Full Year Accounts on the same PDF). That list can live as JSON on `document` for now. It is not the migration unit.
+
+The manifest row is one **source PDF**, not one S3 object under `parsed/`. Stage 3A/3B artefacts are rebuilt later from the PDF on Neon. That is a recompute (LiteParse + page split), not a copy. ~22,570 annual reports and ~1.8M pages of 3A output stay behind on purpose.
+
+---
+
+## What moves
+
+| On AWS today | Move? | Why |
+|--------------|-------|-----|
+| `entities/{TICKER}/annual_reports/{YYYY}_{documentKey}.pdf` | Yes | Source annual-report PDF |
+| `entities/{TICKER}/cfo_changes/{YYYY-MM-DD}_{documentKey}.pdf` | Yes, if that corpus is in scope | Source event PDF |
+| `{TICKER}_Announcements.csv` and `entities.csv` | Read once to seed Postgres | After load, Postgres is the catalog |
+| `parsed/…` (3A LiteParse, 3B pages) | No | Re-run parse on Neon PDFs |
+| `catalog/` | No | Replaced by the tables below |
+| `scripts/`, `logs/`, worker progress JSON | No | Ops artefacts, not the corpus |
+
+Index rows that were never downloaded (~1.26M announcements vs ~22k annual PDFs) can be inserted as catalog documents later. **The manifest includes only documents whose PDF exists on the source bucket.**
+
+---
+
+## Order of work
 
 ```mermaid
 flowchart TB
-  subgraph inventory [Phase A — Inventory once]
-    S3A[(AWS S3 source bucket)]
-    INV[Inventory job\nlist keys + head metadata]
-    MAN[(Migration manifest\nNeon Postgres and/or JSONL on Neon storage)]
-    S3A --> INV --> MAN
+  subgraph neon [1 — Structure on Neon]
+    BUCKET[Object storage bucket asx-artifacts]
+    CAT[catalog.ticker\ncatalog.document_type\ncatalog.document]
   end
 
-  subgraph orchestration [Phase B — Copy workers]
-    Q[Queue\nCloudflare Queue or Vercel Queue]
-    W[Worker\nCF Worker or Vercel Function]
-    S3A --> W
-    W --> NEON[(Neon Object Storage\nasx-artifacts)]
-    MAN --> Q
-    Q --> W
+  subgraph seed [2 — Seed catalog from existing index]
+    CSV[entities.csv +\nAnnouncements CSVs on S3]
+    HEAD[HeadObject each PDF key]
+    CSV --> CAT
+    HEAD --> CAT
+  end
+
+  subgraph job [3 — Temp migration manifest]
+    MAN[migration.manifest\none row per document PDF]
+    CAT --> MAN
+  end
+
+  subgraph copy [4 — Copy PDFs]
+    Q[Queue optional]
+    W[Worker copies one PDF]
+    STORE[(asx-artifacts same key)]
+    MAN --> Q --> W --> STORE
     W --> MAN
   end
-
-  subgraph done [Phase C — Cutover]
-    GATE{All rows\ncomplete?}
-    MAN --> GATE
-    GATE -->|yes| CUTOVER[Flip GYPSY_STORAGE_*\nretire AWS writes]
-  end
 ```
+
+1. **Structure on Neon** — `neon deploy` so production has Postgres and bucket `asx-artifacts`. Apply the `catalog` schema. Empty prefixes do not need to be pre-created; keys appear on first put.
+2. **Seed the catalog** — load companies and the documents that have PDFs. Record `source_object_key`, size, and ETag from S3 `HeadObject`.
+3. **Open the temp manifest** — one `pending` row per catalog document that has a source PDF.
+4. **Copy** — worker reads AWS, writes the same key on Neon, checks size (and ETag when comparable), sets manifest `complete`.
+5. **Gate** — cut over when every manifest row is `complete` or an explicit `waived` (known missing CDN PDFs).
+6. **Drop** schema `migration` after the pipeline reads Neon. Keep `catalog`.
+
+Queue (Cloudflare or Vercel) is an optional dispatcher in step 4. The manifest is the state. The queue is how work is handed out. A single machine draining `pending` rows is valid until volume needs fan-out.
 
 ---
 
-## Migration manifest (checklist)
+## Permanent catalog (`catalog`)
 
-**Source of truth** for “what must exist on Neon.” Two layers (pick one or both):
+Same GypsyDanger project, production branch.
 
-### Option 1 — Neon Postgres (recommended for queries)
+### `catalog.ticker`
 
-Table on **production** branch (Lakebase Postgres), e.g. `migration.object_copy`:
+One ASX company. Seed from `data/entities.csv`.
 
-| Column | Purpose |
-|--------|---------|
-| `object_key` | PK — same key as S3 (`entities/CBA/annual_reports/…`) |
-| `source_bucket` | Legacy AWS bucket name |
-| `source_etag` | From S3 `HeadObject` |
-| `source_size` | `ContentLength` |
+| Column | Notes |
+|--------|--------|
+| `id` | uuid PK |
+| `symbol` | unique, e.g. `CBA` |
+| `name` | company name |
+| `entity_xid` | Markit id used to paginate announcements |
+| `gics_industry_group` | optional |
+| `listing_date` | optional |
+| `market_cap_aud` | optional |
+
+### `catalog.document_type`
+
+One pipeline corpus. Seed from `CORPUS_REGISTRY` in `00_asx_api.py` (the same list as `catalog/corpus_registry.csv`).
+
+| Column | Notes |
+|--------|--------|
+| `id` | smallint or text PK |
+| `key` | unique: `annual_reports`, `cfo_changes`, … |
+| `corpus_id` | `01`, `05`, … |
+| `fetch_folder` | `annual_reports` |
+| `parse_folder` | `01_annual_reports` (used when 3A is re-run; not migrated now) |
+
+### `catalog.document`
+
+One filing PDF the corpus cares about.
+
+| Column | Notes |
+|--------|--------|
+| `id` | uuid PK |
+| `ticker_id` | FK → ticker |
+| `document_type_id` | FK → document_type |
+| `document_key` | Markit `documentKey` |
+| `published_at` | announcement `date` |
+| `headline` | |
+| `announcement_types` | jsonb — Markit tags, many per PDF |
+| `source_object_key` | e.g. `entities/CBA/annual_reports/2024_{documentKey}.pdf` |
+| `byte_size` | from S3 head, nullable until confirmed |
+| `source_etag` | from S3 head |
+
+Unique: `(document_type_id, document_key)`. A PDF lives in one corpus folder. `document_key` alone is unique in practice; the pair matches the path.
+
+This table is the catalog. It does not store copy progress.
+
+---
+
+## Temporary manifest (`migration`)
+
+Drop this schema after cutover.
+
+### `migration.run`
+
+| Column | Notes |
+|--------|--------|
+| `id` | uuid PK |
+| `started_at` | |
+| `source_bucket` | legacy AWS bucket |
 | `dest_bucket` | `asx-artifacts` |
-| `dest_etag` | After successful put |
-| `status` | `pending` \| `in_progress` \| `complete` \| `failed` \| `skipped` |
-| `attempts` | Retry count |
-| `last_error` | Truncated message |
-| `updated_at` | ISO timestamp |
-| `run_id` | Migration run uuid |
+| `status` | `open` \| `complete` |
 
-Indexes: `(status)`, `(run_id, status)` for worker dequeue.
+### `migration.manifest`
 
-**Why Postgres:** cheap aggregations (`count(*) where status=complete`), admin UI later, same Neon project as future catalog.
+One row per document to copy. This is the checklist.
 
-### Option 2 — Object manifest on Neon storage
+| Column | Notes |
+|--------|--------|
+| `id` | uuid PK |
+| `run_id` | FK → run |
+| `document_id` | unique per run, FK → `catalog.document` |
+| `status` | `pending` \| `in_progress` \| `complete` \| `failed` \| `waived` |
+| `attempts` | |
+| `dest_etag` | after put |
+| `dest_byte_size` | must match `catalog.document.byte_size` |
+| `last_error` | |
+| `completed_at` | |
 
-- `manifests/migration/{run_id}/inventory.jsonl` — one JSON line per object at inventory time.
-- `manifests/migration/{run_id}/progress.json` — rolling counters + phase.
-- Workers append to `manifests/migration/{run_id}/failures.jsonl` on error.
+`complete` means the PDF bytes are on Neon at `source_object_key` and the size matches. `waived` is for the known CDN gaps (no PDF to copy). Those documents stay in the catalog with a null or absent object.
 
-**Why object store:** no schema migration; workers only need S3 API + one JSON file read. Harder to query “how many pending?” without scanning.
-
-**Pragmatic split:** Postgres for **state**; optional JSONL **audit export** for debugging.
-
----
-
-## Phase A — Build inventory (run once per migration)
-
-1. **List** all keys under prefixes (same as `DEFAULT_PREFIXES` in `00_object_store.py`):
-   - `entities/`, `parsed/`, `manifests/`, `parse_3a/`, `catalog/`, `data/`, `scripts/`, `logs/`, …
-2. For each key, **HeadObject** on AWS: `ContentLength`, `ETag`, optional `ContentType`.
-3. **Skip** zero-byte keys or known junk if any.
-4. **Insert** rows `status=pending` (Postgres) or append JSONL line.
-5. Upload **`manifests/migration/{run_id}/inventory_meta.json`** to Neon (counts, prefixes, started_at, source bucket).
-
-**Tooling options:**
-
-- Extend `27_migrate_object_store.py` with `--inventory-only --manifest-run-id …` (writes Postgres or JSONL).
-- One-off script `28_build_migration_inventory.py` (future).
-- AWS S3 Inventory report → transform → load Postgres (cheapest at huge scale; slower to set up).
-
-**Copy existing pipeline manifest first (fast win):**
-
-- Sync `manifests/parse_enrich_progress.json`, shard lists under `parse_3a/`, and `catalog/corpus_registry.csv` to Neon **before** bulk object copy so ops can see corpus state on the new bucket while migration runs.
+Workers claim `pending` → `in_progress`, copy, then `complete` or `failed`. Re-queue `failed` until `attempts` hits a cap.
 
 ---
 
-## Phase B — Queue + workers (stateful copy)
+## Copy worker
 
-### Message shape (queue)
+For one manifest row:
 
-```json
-{
-  "run_id": "uuid",
-  "object_key": "entities/CBA/annual_reports/2024_….pdf",
-  "source_etag": "\"abc…\"",
-  "source_size": 1234567
-}
-```
+1. Read `catalog.document.source_object_key`.
+2. GET the object from the AWS bucket.
+3. PUT the same key to `asx-artifacts`.
+4. Head the destination. Size must equal `byte_size`.
+5. Set manifest `complete`.
 
-Optional: batch messages (e.g. 10 keys) to reduce queue overhead — tradeoff vs failure blast radius.
+Idempotent: if destination size already matches, mark `complete` and skip the download.
 
-### Worker logic (CF Worker or Vercel Function)
+Dispatcher options, unchanged in spirit from the earlier draft:
 
-For each message:
+- Cloudflare Queue + Worker, or Vercel Queue + Function, or a single process selecting `pending` rows.
+- Concurrency stays low until Neon rate limits are observed.
+- AWS credentials on the worker are read-only on the source bucket. Neon storage credentials write `asx-artifacts`.
 
-1. **Claim** row in Postgres: `pending` → `in_progress` (or rely on queue at-least-once + idempotent dest check).
-2. **GET** object from AWS S3 (worker needs **read-only IAM** or pre-signed GET URLs generated at inventory time).
-3. **PUT** to Neon Object Storage (`AWS_ENDPOINT_URL_S3` + branch creds, path-style, same `object_key`).
-4. **Verify:** compare `ContentLength`; prefer **ETag** match if Neon returns comparable ETag.
-5. **Mark** `complete` (store dest ETag) or `failed` with error; increment `attempts`.
-6. **Ack** queue message only after step 5 success (or move to DLQ after N attempts).
-
-**Secrets:**
-
-- AWS: access key scoped to `s3:GetObject`, `s3:ListBucket` on source bucket only.
-- Neon: storage credentials from branch (rotate via Neon; not in git).
-
-**Concurrency:**
-
-- Start **low** (5–20 concurrent workers) to avoid Neon 429 / rate limits; increase from metrics.
-- Large PDFs: stream body through worker (memory limit — CF Workers have caps; **Vercel** or **CF R2 intermediary** may be needed for multi‑100MB objects; annual reports are usually smaller).
-
-### Cloudflare Queue vs Vercel Queue
-
-| | Cloudflare Queue + Worker | Vercel Queue + Function |
-|--|---------------------------|-------------------------|
-| **Stateful retries** | Built-in DLQ, visibility timeout | Vercel queue retry policy |
-| **Long transfers** | CPU/time limits — may need multipart or bypass for huge objects | Function max duration — same concern |
-| **S3 → Neon path** | Worker fetches AWS, puts Neon | Same |
-| **Ops** | CF dashboard, queue depth | Vercel dashboard |
-| **Fit** | High fan-out, edge | Already on Vercel for app |
-
-**Not sure yet?** Prototype with **1000 messages** on one prefix (`manifests/`) before full corpus.
-
-### Alternative: Neon Function as worker
-
-Same queue consumer logic on **Neon Functions** (close to storage region). Pros: one vendor, creds injected. Cons: cold start, concurrency limits — evaluate against CF/Vercel.
+Large PDFs must fit the worker body/time limit. If they do not, that worker class is the wrong host and the drainer should be a small VM that still updates the same manifest.
 
 ---
 
-## Phase C — Completion gate & cutover
+## Done when
 
-**Do not flip production** until:
+- Every `migration.manifest` row for the open run is `complete` or `waived`.
+- Count of `complete` annual-report PDFs matches S3 `entities/*/annual_reports/*.pdf` (about 22,570, minus waived keys).
+- Spot-check a handful of keys: size on Neon equals `catalog.document.byte_size`.
+- Pipeline env points at `asx-artifacts` for new fetches and for a later 3A re-parse.
+- Schema `migration` is dropped. Schema `catalog` remains.
 
-- [ ] `count(complete) = count(pending+complete+failed)` and `failed = 0` (or failed keys documented/waived).
-- [ ] Spot verify: N random keys — size + ETag match AWS vs Neon.
-- [ ] Document-level check: count `entities/*/annual_reports/*.pdf` on both sides ≈ 22,570 (minus known CDN gaps).
-- [ ] `manifests/migration/{run_id}/complete.json` written with signer + timestamp.
-- [ ] Update `manifests/parse_enrich_progress.json` URIs from `s3://…` to `neon://asx-artifacts/…` (or neutral `storage://`).
-
-Then: [`neon-corpus-migration.md`](neon-corpus-migration.md) **Phase 2** (pipeline env) and **Phase 4** (AWS read-only / decommission).
+`parsed/` on AWS can be deleted only after a Neon 3A/3B run replaces it, or kept as a cold archive until that re-parse exists.
 
 ---
 
-## Open decisions
+## Out of scope for this migration
 
-| # | Question | Notes |
-|---|----------|--------|
-| 1 | Postgres vs JSONL-only manifest | Postgres better for progress UI; JSONL simpler for v0 |
-| 2 | CF vs Vercel vs Neon Function | Prototype small prefix first |
-| 3 | Pre-signed GET vs worker IAM for AWS read | Pre-signed avoids long-lived AWS keys on edge |
-| 4 | Message = 1 object vs batch | Batching reduces queue cost; complicates partial failure |
-| 5 | Multipart for large objects | Required if worker body size limits bite |
-| 6 | Inventory from live List vs S3 Inventory CSV | List is fine until millions of keys |
-
----
-
-## Relationship to existing tools
-
-| Artifact | Role |
-|----------|------|
-| [`27_migrate_object_store.py`](../scripts/27_migrate_object_store.py) | **Track A:** simple serial copy; good for pilot prefix or emergency |
-| **This plan (Track B)** | Durable checklist + queue workers at scale |
-| [`extraction-pipeline.md`](../docs/extraction-pipeline.md) | Key layout unchanged |
-| `parse_enrich_progress.json` | Pipeline phase manifest — copy early; not the same as per-object migration checklist |
-
----
-
-## Suggested implementation order
-
-1. [ ] Neon deploy + `asx-artifacts` + env pull  
-2. [ ] Copy **pipeline manifests** to Neon (`manifests/`, `parse_3a/` metadata only)  
-3. [ ] Inventory job → Postgres table (or JSONL on Neon)  
-4. [ ] Queue + worker MVP — one prefix, 1k objects, metrics  
-5. [ ] Full drain + completion gate  
-6. [ ] Pipeline cutover (env + EC2 scripts)  
-7. [ ] Decommission AWS bucket (read-only retention)
+- Copying `parsed/`, `catalog/`, `scripts/`, `logs/`.
+- Stage 3C enrichment.
+- Loading all ~1.26M announcement rows that have no PDF. Add them to `catalog.document` in a later index load if the catalog must list every filing, not every file.
 
 ---
 
@@ -230,4 +225,5 @@ Then: [`neon-corpus-migration.md`](neon-corpus-migration.md) **Phase 2** (pipeli
 
 | Date | Change |
 |------|--------|
-| 2026-10-13 | Draft plan: manifest checklist on Neon, CF/Vercel queue workers, phases A–C |
+| 2026-10-13 | Rework: catalog tables first (ticker, document type, document); temp `migration.manifest` per PDF; skip parse, catalog prefix, and scripts |
+| 2026-10-13 | Initial draft: object-level inventory and queue workers |

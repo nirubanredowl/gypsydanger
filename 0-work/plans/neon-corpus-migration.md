@@ -35,7 +35,7 @@ depends_on:
 | Track | When to use | Doc |
 |-------|-------------|-----|
 | **A — Serial copy** | Pilot prefix, emergency, single VM | Phase 1 below (`27_migrate_object_store.py`) |
-| **B — Manifest + queue workers** | Full corpus, resumable, observable | [`neon-corpus-migration-queue-workers.md`](neon-corpus-migration-queue-workers.md) |
+| **B — Catalog + document manifest** | Seed ticker / document type / document on Neon Postgres, then copy source PDFs only | [`neon-corpus-migration-queue-workers.md`](neon-corpus-migration-queue-workers.md) |
 
 ---
 
