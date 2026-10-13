@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from importlib import import_module
 
 asx = import_module("00_asx_api")
+store_mod = import_module("00_object_store")
 
 
 def parse_args() -> argparse.Namespace:
@@ -24,8 +25,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ticker", required=True, help="ASX ticker to fetch")
     parser.add_argument(
         "--bucket",
-        default=os.environ.get("GYPSY_S3_BUCKET", ""),
-        help="S3 bucket (default: GYPSY_S3_BUCKET)",
+        default=os.environ.get("GYPSY_STORAGE_BUCKET", "")
+        or os.environ.get("GYPSY_S3_BUCKET", ""),
+        help="Object store bucket (GYPSY_STORAGE_BUCKET or GYPSY_S3_BUCKET)",
     )
     parser.add_argument(
         "--run-id",
@@ -94,20 +96,16 @@ def aws_cmd(*parts: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def open_store(bucket: str) -> store_mod.ObjectStore:
+    return store_mod.store_for_bucket(bucket)
+
+
 def s3_object_exists(bucket: str, key: str) -> bool:
-    result = aws_cmd("s3api", "head-object", "--bucket", bucket, "--key", key)
-    return result.returncode == 0
+    return open_store(bucket).exists(key)
 
 
 def s3_upload_bytes(bucket: str, key: str, payload: bytes) -> None:
-    tmp = Path(f"/tmp/upload-{os.getpid()}.pdf")
-    tmp.write_bytes(payload)
-    try:
-        result = aws_cmd("s3", "cp", str(tmp), f"s3://{bucket}/{key}")
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or f"s3 cp failed: {key}")
-    finally:
-        tmp.unlink(missing_ok=True)
+    open_store(bucket).put_bytes(key, payload, content_type="application/pdf")
 
 
 def load_announcements_csv(
@@ -122,14 +120,15 @@ def load_announcements_csv(
             return list(csv.DictReader(fh))
 
     key = f"entities/{ticker}/{ticker}_Announcements.csv"
-    tmp = Path(f"/tmp/{ticker}_Announcements.csv")
-    result = aws_cmd("s3", "cp", f"s3://{bucket}/{key}", str(tmp))
-    if result.returncode != 0:
+    store = open_store(bucket)
+    if not store.exists(key):
         raise FileNotFoundError(
-            f"s3://{bucket}/{key} not found. Upload index CSVs first."
+            f"{store.uri(key)} not found. Upload index CSVs first."
         )
-    with tmp.open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+    import io
+
+    text = store.get_text(key)
+    return list(csv.DictReader(io.StringIO(text)))
 
 
 def annual_report_rows(

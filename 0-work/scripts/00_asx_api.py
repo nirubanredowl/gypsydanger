@@ -161,7 +161,7 @@ def local_annual_report_path(ticker: str, date_str: str, document_key: str) -> P
 
 
 def s3_annual_report_key(ticker: str, date_str: str, document_key: str) -> str:
-    """S3 object key for an annual report PDF."""
+    """Object store key for an annual report PDF (AWS S3 or Neon; same path)."""
     name = annual_report_pdf_basename(date_str, document_key)
     return f"entities/{ticker.upper()}/annual_reports/{name}"
 

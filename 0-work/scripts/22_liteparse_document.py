@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 import re
-import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -19,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from importlib import import_module
 
 asx = import_module("00_asx_api")
+store_mod = import_module("00_object_store")
 
 try:
     from liteparse import LiteParse
@@ -31,7 +31,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ticker", required=True)
     parser.add_argument("--document-key", required=True)
     parser.add_argument("--corpus-key", default="annual_reports")
-    parser.add_argument("--bucket", default=os.environ.get("GYPSY_S3_BUCKET", ""))
+    parser.add_argument(
+        "--bucket",
+        default=os.environ.get("GYPSY_STORAGE_BUCKET", "")
+        or os.environ.get("GYPSY_S3_BUCKET", ""),
+    )
     parser.add_argument(
         "--pdf-key",
         help="S3 PDF key (default: derived from ticker/date/document-key)",
@@ -55,46 +59,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def aws_cmd(*parts: str) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
-    env["AWS_PAGER"] = ""
-    return subprocess.run(
-        ["aws", *parts, "--no-cli-pager"],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-
-def s3_object_exists(bucket: str, key: str) -> bool:
-    return aws_cmd("s3api", "head-object", "--bucket", bucket, "--key", key).returncode == 0
-
-
-def s3_download_bytes(bucket: str, key: str) -> bytes:
-    return _download_binary(bucket, key)
-
-
-def _download_binary(bucket: str, key: str) -> bytes:
-    tmp = Path(f"/tmp/gypsy-pdf-{os.getpid()}.pdf")
-    result = aws_cmd("s3", "cp", f"s3://{bucket}/{key}", str(tmp))
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"s3 download failed: {key}")
-    try:
-        return tmp.read_bytes()
-    finally:
-        tmp.unlink(missing_ok=True)
-
-
-def s3_sync_dir(bucket: str, local_dir: Path, s3_prefix: str) -> None:
-    result = aws_cmd(
-        "s3",
-        "sync",
-        str(local_dir),
-        f"s3://{bucket}/{s3_prefix}",
-        "--only-show-errors",
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"s3 sync failed: {s3_prefix}")
+def open_store(bucket: str) -> store_mod.ObjectStore:
+    return store_mod.store_for_bucket(bucket)
 
 
 def serialize_text_item(item: object) -> dict[str, Any]:
@@ -298,7 +264,8 @@ def parse_document(
     manifest_key = asx.s3_liteparse_manifest_key(ticker, corpus_key, document_key)
     doc_prefix = asx.s3_parsed_doc_prefix(ticker, corpus_key, document_key)
 
-    if skip_if_exists and bucket and s3_object_exists(bucket, manifest_key):
+    store = open_store(bucket) if bucket else None
+    if skip_if_exists and store and store.exists(manifest_key):
         return {
             "status": "skipped",
             "ticker": ticker,
@@ -308,8 +275,8 @@ def parse_document(
 
     if pdf_file:
         pdf_bytes = pdf_file.read_bytes()
-    elif bucket:
-        pdf_bytes = s3_download_bytes(bucket, s3_pdf_key)
+    elif store:
+        pdf_bytes = store.get_bytes(s3_pdf_key)
     else:
         raise ValueError("bucket or pdf_file required")
 
@@ -345,7 +312,7 @@ def parse_document(
     work.mkdir(parents=True)
     try:
         write_document_outputs(work, meta=meta, state=state, parse_result=parse_result)
-        s3_sync_dir(bucket, work, doc_prefix)
+        store.upload_dir(work, doc_prefix)
     finally:
         import shutil
 

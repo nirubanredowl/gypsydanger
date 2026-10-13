@@ -40,6 +40,8 @@ These three questions define the project:
 
 ## Data & storage
 
+**Canonical pipeline layout (fetch + parse):** [`0-work/docs/extraction-pipeline.md`](extraction-pipeline.md). Object keys are shared between legacy AWS S3 and Neon bucket `asx-artifacts`.
+
 Fetch structure (foundational — parse and analysis layers added in later stages):
 
 ```
@@ -67,9 +69,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Stage 3A complete** (22,570 parsed; 3 deferred). **Stage 3B tooling ready**. **Neon backend scaffold** on repo root: `neon.ts` (Auth, Functions hello stub, `asx-artifacts` bucket), Neon skills (`.agents/skills/`), OAuth MCP in `.cursor/mcp.json`, linked to GypsyDanger production branch locally (`.neon`, gitignored). **Deploy blocked** until `NEON_API_KEY` or `neon login` in the agent environment.
+**Current state:** **Stage 3A complete** on legacy S3. **S3 → Neon migration in progress:** living pipeline doc [`0-work/docs/extraction-pipeline.md`](extraction-pipeline.md), object store module `00_object_store.py`, migrate script `27_migrate_object_store.py`; 3A/3B/fetch wired to boto3 (Neon-compatible). EC2 orchestration still AWS-oriented until Phase 2 in [`0-work/plans/neon-corpus-migration.md`](../plans/neon-corpus-migration.md).
 
-**Next action:** After Neon auth: `neon config plan` → `neon deploy` → `neon env pull` on production. Continue Stage 3B at scale if not done.
+**Next action:** Neon auth → `neon deploy` → `neon env pull` → run full corpus copy (`27_migrate_object_store.py`) → cut worker env to `GYPSY_STORAGE_*` → finish 3B on Neon.
 
 **Constraints**
 
