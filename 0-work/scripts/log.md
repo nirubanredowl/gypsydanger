@@ -262,3 +262,28 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `aws/run_split_pages.sh --async`
 - **Exit:** 0
 - **Result:** Run `20260717T035425Z-split` — 20 workers launched. Targets 22,570 docs. Waiter tmux `split-waiter-20260717T035425Z-split`. Progress `manifests/split_progress.json`.
+
+## 2026-10-13 11:40 — Migration plan reworked around document catalog
+- **Command:** (doc) rewrote `0-work/plans/neon-corpus-migration-queue-workers.md`
+- **Exit:** n/a
+- **Result:** Permanent `catalog` (ticker, document_type, document) then temp `migration.manifest` per source PDF. Parse, S3 catalog prefix, and scripts are out of the copy.
+
+## 2026-10-13 08:45 — Neon migration queue-worker plan (draft)
+- **Command:** (doc) `0-work/plans/neon-corpus-migration-queue-workers.md`
+- **Exit:** n/a
+- **Result:** Draft Track B: inventory → Postgres/JSONL manifest on Neon → CF/Vercel queue workers → completion gate; linked from neon-corpus-migration.md.
+
+## 2026-10-13 08:40 — extraction-pipeline.md Stages 0–2 detail
+- **Command:** (doc) expanded `0-work/docs/extraction-pipeline.md`
+- **Exit:** n/a
+- **Result:** Documented entity normalisation, Markit index pagination, entity_xid resolution order, local vs object-store fetch, annual strict/loose filters.
+
+## 2026-10-13 08:30 — S3→Neon pipeline abstraction + living doc
+- **Command:** (code) `00_object_store.py`, `27_migrate_object_store.py`; refactor `22_*`, `24_*`, `11_*`; docs `extraction-pipeline.md`, plan `neon-corpus-migration.md`
+- **Exit:** n/a
+- **Result:** Same object key layout; boto3 store for AWS/Neon; migration script with default prefixes. EC2 shells not yet cut over.
+
+## 2026-10-13 07:45 — Neon skills + init (GypsyDanger production)
+- **Command:** `npx neon skills -y`; `neon init -y --agent cursor --skill neon --mcp-auth oauth --mcp-config-location project --org-id org-raspy-brook-53821560 --project-id little-sky-99220911 --branch-id br-small-lake-b4r1qjs5 --services auth,functions,object-storage`; `neon deploy` (attempt)
+- **Exit:** skills/init 0; deploy 1 (auth timeout)
+- **Result:** Installed Neon agent skills; linked project offline; wrote `neon.ts`, MCP OAuth URL in `.cursor/mcp.json`. Remote deploy pending `NEON_API_KEY` or `neon login`.

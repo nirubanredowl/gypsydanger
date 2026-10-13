@@ -40,6 +40,8 @@ These three questions define the project:
 
 ## Data & storage
 
+**Canonical pipeline layout (fetch + parse):** [`0-work/docs/extraction-pipeline.md`](extraction-pipeline.md). Object keys are shared between legacy AWS S3 and Neon bucket `asx-artifacts`.
+
 Fetch structure (foundational — parse and analysis layers added in later stages):
 
 ```
@@ -67,9 +69,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Stage 3A complete** (22,570 parsed; 3 deferred). **Stage 3B tooling ready** — `24_split_pdf_pages.py`, `25_split_shard.py`, `aws/run_split_pages.sh` (+ EC2 launch/waiter). Smoke-tested one doc on S3.
+**Current state:** **Stage 3A complete** on legacy S3. **S3 → Neon migration in progress:** living pipeline doc [`0-work/docs/extraction-pipeline.md`](extraction-pipeline.md), object store module `00_object_store.py`, migrate script `27_migrate_object_store.py`; 3A/3B/fetch wired to boto3 (Neon-compatible). EC2 orchestration still AWS-oriented until Phase 2 in [`0-work/plans/neon-corpus-migration.md`](../plans/neon-corpus-migration.md).
 
-**Next action:** Run Stage 3B at scale: `0-work/scripts/aws/run_split_pages.sh --async`. Then Stage 3C Flash.
+**Next action:** Neon auth → `neon deploy` → `neon env pull` → run full corpus copy (`27_migrate_object_store.py`) → cut worker env to `GYPSY_STORAGE_*` → finish 3B on Neon.
 
 **Constraints**
 

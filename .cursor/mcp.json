@@ -2,7 +2,9 @@
   "mcpServers": {
     "awslabs.aws-api-mcp-server": {
       "command": "/home/ubuntu/.local/bin/uvx",
-      "args": ["awslabs.aws-api-mcp-server@latest"],
+      "args": [
+        "awslabs.aws-api-mcp-server@latest"
+      ],
       "env": {
         "AWS_REGION": "ap-southeast-2"
       },
@@ -20,6 +22,9 @@
       ],
       "disabled": false,
       "autoApprove": []
+    },
+    "Neon": {
+      "url": "https://mcp.neon.tech/mcp"
     }
   }
 }
