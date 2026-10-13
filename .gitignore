@@ -4,3 +4,7 @@ data/entities/**/raw/*.pdf
 data/parse-sample-corpus/pdfs/
 data/parse-sample-corpus/openparse/
 data/parse-sample-corpus/liteparse/
+.neon
+.env
+.env.local
+node_modules/

@@ -262,3 +262,8 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Command:** `aws/run_split_pages.sh --async`
 - **Exit:** 0
 - **Result:** Run `20260717T035425Z-split` — 20 workers launched. Targets 22,570 docs. Waiter tmux `split-waiter-20260717T035425Z-split`. Progress `manifests/split_progress.json`.
+
+## 2026-10-13 07:45 — Neon skills + init (GypsyDanger production)
+- **Command:** `npx neon skills -y`; `neon init -y --agent cursor --skill neon --mcp-auth oauth --mcp-config-location project --org-id org-raspy-brook-53821560 --project-id little-sky-99220911 --branch-id br-small-lake-b4r1qjs5 --services auth,functions,object-storage`; `neon deploy` (attempt)
+- **Exit:** skills/init 0; deploy 1 (auth timeout)
+- **Result:** Installed Neon agent skills; linked project offline; wrote `neon.ts`, MCP OAuth URL in `.cursor/mcp.json`. Remote deploy pending `NEON_API_KEY` or `neon login`.
