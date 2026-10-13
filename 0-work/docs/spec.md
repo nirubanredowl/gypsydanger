@@ -67,9 +67,9 @@ data/
 
 ## Agent brief
 
-**Current state:** **Stage 3A complete** (22,570 parsed; 3 deferred). **Stage 3B tooling ready** — `24_split_pdf_pages.py`, `25_split_shard.py`, `aws/run_split_pages.sh` (+ EC2 launch/waiter). Smoke-tested one doc on S3.
+**Current state:** **Stage 3A complete** (22,570 parsed; 3 deferred). **Stage 3B tooling ready**. **Neon backend scaffold** on repo root: `neon.ts` (Auth, Functions hello stub, `asx-artifacts` bucket), Neon skills (`.agents/skills/`), OAuth MCP in `.cursor/mcp.json`, linked to GypsyDanger production branch locally (`.neon`, gitignored). **Deploy blocked** until `NEON_API_KEY` or `neon login` in the agent environment.
 
-**Next action:** Run Stage 3B at scale: `0-work/scripts/aws/run_split_pages.sh --async`. Then Stage 3C Flash.
+**Next action:** After Neon auth: `neon config plan` → `neon deploy` → `neon env pull` on production. Continue Stage 3B at scale if not done.
 
 **Constraints**
 
