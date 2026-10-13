@@ -263,6 +263,11 @@ Audit trail for scripts run from `0-work/scripts/`. The agent appends an entry a
 - **Exit:** 0
 - **Result:** Run `20260717T035425Z-split` — 20 workers launched. Targets 22,570 docs. Waiter tmux `split-waiter-20260717T035425Z-split`. Progress `manifests/split_progress.json`.
 
+## 2026-10-13 08:40 — extraction-pipeline.md Stages 0–2 detail
+- **Command:** (doc) expanded `0-work/docs/extraction-pipeline.md`
+- **Exit:** n/a
+- **Result:** Documented entity normalisation, Markit index pagination, entity_xid resolution order, local vs object-store fetch, annual strict/loose filters.
+
 ## 2026-10-13 08:30 — S3→Neon pipeline abstraction + living doc
 - **Command:** (code) `00_object_store.py`, `27_migrate_object_store.py`; refactor `22_*`, `24_*`, `11_*`; docs `extraction-pipeline.md`, plan `neon-corpus-migration.md`
 - **Exit:** n/a
